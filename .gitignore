@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+.terraform.lock.hcl
+crash.log
+# terraform.tfvars committed to private repo so CI/CD has the values
+# (uncomment to ignore if making the repo public)
+# terraform.tfvars
+!terraform.tfvars.example
+
+# Docker
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Lambda packaging
+app/invoice/package/
+lambda.zip
+
+# Keys
+*.pem
+*.key
+
+# Logs
+*.log
+
+# Superpowers (development tool, not project code)
+superpowers/
+
+# Claude Code config
+.claude/
+
+# Internal planning docs
+docs/
+
+# Git commands script (local use only)
+GIT_COMMANDS.sh
