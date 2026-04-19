@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
-# ShopCloud — Backend/App commits (~17 commits)
+# ShopCloud — Backend/App commits (9 commits)
 # Run by: BACKEND TEAMMATE
-#
-# This is the SECOND script that runs (after Rasha pushed devops commits).
-# It clones the repo, copies in source files from the zip Rasha sent,
-# adds the backend commits under YOUR git identity, and pushes.
 #
 # Usage:
 #   1. Receive shopcloud-source.zip from Rasha and unzip it somewhere, e.g. ~/shopcloud-src
@@ -16,50 +12,53 @@
 #   5. git config user.name  "Your Full Name"
 #   6. git config user.email "your_github_email@example.com"   (MUST match your GitHub account email)
 #   7. bash commit-backend.sh
-#   8. git push origin main
+#   8. git push origin main          (if rejected: git pull --rebase origin main, then push)
 
 set -e
 cd "$(dirname "$0")"
 
-# ── 3. Shared application modules ──
+# ── 1. SQLAlchemy models, Pydantic schemas, Alembic config, initial migration ──
 git add app/shared/__init__.py \
-  app/shared/config.py \
   app/shared/database.py \
+  app/shared/config.py \
   app/shared/models.py \
   app/shared/schemas.py \
-  app/shared/auth.py \
-  app/shared/redis_client.py \
-  app/shared/dependencies.py
-git commit -m "feat: add shared modules (config, database, models, schemas, auth, redis, dependencies)"
-
-# ── 4. Database migration + Alembic config ──
-git add app/alembic.ini \
+  app/alembic.ini \
   app/migrations/env.py \
   app/migrations/versions/001_initial_schema.py
-git commit -m "feat: add Alembic config and initial database migration"
+git commit -m "feat(db): add SQLAlchemy models, Pydantic schemas, Alembic config, and initial migration (001)"
 
-# ── 5. Catalog service ──
+# ── 2. Cognito JWT auth + Redis client + FastAPI dependencies ──
+git add app/shared/auth.py \
+  app/shared/redis_client.py \
+  app/shared/dependencies.py
+git commit -m "feat(auth): Cognito JWT verification (customer + admin pools), Redis cart client, shared FastAPI dependencies"
+
+# ── 3. Catalog service (listing, search, sort, filters, reviews, promotions, testimonials) ──
 git add app/services/catalog/__init__.py \
   app/services/catalog/service.py \
   app/services/catalog/router.py \
-  app/entrypoints/catalog.py
-git commit -m "feat: add catalog service (product listing, search, categories)"
+  app/entrypoints/catalog.py \
+  app/migrations/versions/003_reviews_promotions_media.py
+git commit -m "feat(catalog): product listing/search/sort/price-filter, reviews with aggregate ratings, promotions (hero + flash), testimonials, image gallery (migration 003)"
 
-# ── 6. Cart service ──
+# ── 4. Cart service (Redis-backed, server-side stock guard) ──
 git add app/services/cart/__init__.py \
   app/services/cart/service.py \
   app/services/cart/router.py \
   app/entrypoints/cart.py
-git commit -m "feat: add cart service (Redis-backed cart with add, update, remove)"
+git commit -m "feat(cart): Redis-backed cart with add/update/remove and server-side stock guard on add and quantity update"
 
-# ── 7. Checkout service ──
+# ── 5. Checkout service (orders, coupons, reorder, async invoice via BackgroundTask) ──
 git add app/services/checkout/__init__.py \
   app/services/checkout/service.py \
   app/services/checkout/router.py \
-  app/entrypoints/checkout.py
-git commit -m "feat: add checkout service (order placement, history, SQS integration)"
+  app/entrypoints/checkout.py \
+  app/shared/coupons.py \
+  app/migrations/versions/002_coupons_audit_log.py
+git commit -m "feat(checkout): order placement + history, coupon validation, reorder endpoint, cancel order, FastAPI BackgroundTask publishes invoice SQS message after response (migration 002 — coupons + audit log + order discount fields)"
 
-# ── 8. Admin service + templates ──
+# ── 6. Admin panel (Jinja2 templates, coupons CRUD, audit log, analytics) ──
 git add app/services/admin/__init__.py \
   app/services/admin/service.py \
   app/services/admin/router.py \
@@ -69,86 +68,35 @@ git add app/services/admin/__init__.py \
   app/services/admin/templates/product_form.html \
   app/services/admin/templates/orders.html \
   app/services/admin/templates/inventory.html \
+  app/services/admin/templates/coupons.html \
+  app/services/admin/templates/audit.html \
+  app/services/admin/templates/analytics.html \
   app/entrypoints/admin.py
-git commit -m "feat: add admin panel with Jinja2 templates (dashboard, products, orders, inventory)"
+git commit -m "feat(admin): Jinja2 admin panel — dashboard, products, inventory, orders (status enum aligned with DB), coupons CRUD, audit log on all mutations, 30-day analytics; revenue excludes cancelled orders, Active Products requires stock>0"
 
-# ── 9. Combined entrypoint + seed data ──
+# ── 7. Invoice Lambda pipeline (PDF + S3 + SES) ──
+git add app/invoice/__init__.py \
+  app/invoice/lambda_function.py \
+  app/invoice/requirements.txt \
+  app/migrations/versions/004_widen_invoice_url.py
+git commit -m "feat(invoice): Lambda PDF generator → S3 → SES email; widen orders.invoice_url to TEXT (migration 004) — presigned S3 URLs exceeded VARCHAR(500)"
+
+# ── 8. Combined dev entrypoint + seed data ──
 git add app/entrypoints/combined.py \
   app/scripts/__init__.py \
   app/scripts/seed_data.py
-git commit -m "feat: add combined dev entrypoint and seed data script"
+git commit -m "feat(dev): combined FastAPI entrypoint for local development + seed_data.py (25 products, coupons, promotions, testimonials, Men/Women clothing attributes)"
 
-# ── 10. Invoice Lambda pipeline ──
-git add app/invoice/__init__.py \
-  app/invoice/lambda_function.py \
-  app/invoice/requirements.txt
-git commit -m "feat: add Lambda invoice pipeline (PDF generation, S3 storage, SES email)"
-
-# ── 11. Unit tests ──
+# ── 9. Unit tests ──
 git add app/tests/__init__.py \
   app/tests/conftest.py \
   app/tests/test_catalog.py \
   app/tests/test_cart.py \
   app/tests/test_checkout.py \
   app/tests/test_admin.py
-git commit -m "test: add unit tests for catalog, cart, checkout, and admin services"
+git commit -m "test: unit tests for catalog, cart, checkout, and admin services (32/32 passing) with NullPool conftest for SQLite per-test isolation"
 
-# ── 18. Audit fix: admin order status enum ──
-git add app/services/admin/service.py \
-  app/services/admin/templates/orders.html
-git commit -m "fix: align admin order status enum with DB constraint (pending → processing)"
-
-# ── 20. Migration: coupons, audit log, order discount fields ──
-git add app/shared/models.py \
-  app/shared/schemas.py \
-  app/shared/coupons.py \
-  app/migrations/versions/002_coupons_audit_log.py
-git commit -m "feat(db): add Coupon and AuditLog models, order discount fields, migration 002"
-
-# ── 21. Catalog: server-side sort + price range filters ──
-git add app/services/catalog/service.py \
-  app/services/catalog/router.py
-git commit -m "feat(catalog): add server-side sort, min/max price filters, price-range endpoint"
-
-# ── 22. Checkout: coupon validation + reorder endpoint ──
-git add app/services/checkout/service.py \
-  app/services/checkout/router.py
-git commit -m "feat(checkout): apply coupons at checkout, add /coupons/validate and /orders/{id}/reorder"
-
-# ── 23. Admin: coupons, audit log, analytics dashboard ──
-git add app/services/admin/service.py \
-  app/services/admin/router.py \
-  app/services/admin/templates/base.html \
-  app/services/admin/templates/coupons.html \
-  app/services/admin/templates/audit.html \
-  app/services/admin/templates/analytics.html
-git commit -m "feat(admin): add coupons CRUD, audit log on all mutations, 30-day analytics dashboard"
-
-# ── 30. Backend: reviews, promotions, testimonials, product media + rating columns ──
-git add app/shared/models.py \
-  app/shared/schemas.py \
-  app/services/catalog/router.py \
-  app/services/catalog/service.py \
-  app/entrypoints/catalog.py \
-  app/entrypoints/combined.py \
-  app/migrations/versions/003_reviews_promotions_media.py \
-  app/scripts/seed_data.py
-git commit -m "feat(catalog): reviews (with aggregate ratings), promotions (hero + flash slots), testimonials, product image gallery + sales_count — mapped to existing RDS; no new AWS services"
-
-# ── 36. Admin compliance fixes (revenue, edit 404, active count, stock guard) ──
-git add app/services/admin/service.py \
-  app/services/admin/router.py \
-  app/services/cart/service.py \
-  app/services/cart/router.py
-git commit -m "fix(admin+cart): exclude cancelled orders from revenue, fix Edit Product 404 (direct lookup vs paginated scan), Active Products count requires stock>0, server-side stock guard on cart add and quantity update"
-
-# ── 45. Async invoice: SQS publish moves to FastAPI BackgroundTask ──
-git add app/services/checkout/service.py \
-  app/services/checkout/router.py \
-  app/tests/test_checkout.py
-git commit -m "feat(checkout): publish invoice SQS message via FastAPI BackgroundTask so /api/checkout returns immediately and the customer can keep shopping while invoice generation runs out of band"
-
-# ── Catch any leftover backend files ──
+# ── Catch any leftover backend files (defensive) ──
 git add -A
 git diff --cached --quiet || git commit -m "chore(backend): include any remaining untracked backend files"
 
