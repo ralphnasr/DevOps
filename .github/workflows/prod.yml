@@ -197,10 +197,7 @@ jobs:
         # Per docs/phase2-master-plan.md §9.3 step 17
         run: |
           set -euo pipefail
-          ALB=$(aws elbv2 describe-load-balancers \
-            --names shopcloud-prod-public \
-            --query 'LoadBalancers[0].DNSName' \
-            --output text)
+          ALB=$(cd terraform && terraform output -raw prod_alb_dns)
           if [[ -z "$ALB" || "$ALB" == "None" ]]; then
             echo "ERROR: could not resolve public ALB DNS"
             exit 1
