@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <title>Sign In - ShopCloud</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* Persistent inline status banner — does not auto-dismiss like toast does. */
+        .auth-status { padding: 12px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; margin-bottom: 16px; line-height: 1.4; }
+        .auth-status.error   { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+        .auth-status.success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        .auth-status.info    { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    </style>
+</head>
+<body class="auth-page">
+    <header class="navbar">
+        <a href="index.html" class="logo">Shop<span>Cloud</span></a>
+        <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu"><span></span><span></span><span></span></button>
+        <nav class="nav-links">
+            <a href="index.html" data-nav="shop">Shop All</a>
+            <a href="index.html?filter=new" data-nav="new">New Arrivals</a>
+            <a href="index.html?filter=best-sellers" data-nav="best">Best Sellers</a>
+            <a href="contact.html" data-nav="about">About</a>
+        </nav>
+        <form class="nav-search" onsubmit="submitNavSearch(event)">
+            <span class="search-glyph"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+            <input type="text" id="nav-search-input" placeholder="Search products..." autocomplete="off">
+        </form>
+        <div class="nav-icons">
+            <a href="orders.html" class="nav-icon-btn" title="Orders" aria-label="Orders"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></a>
+            <a href="wishlist.html" class="nav-icon-btn" title="Wishlist" aria-label="Wishlist"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span id="wishlist-badge" class="cart-badge" style="display:none">0</span></a>
+            <a href="cart.html" class="nav-icon-btn cart-link" title="Cart" aria-label="Cart"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span id="cart-badge" class="cart-badge" style="display:none">0</span></a>
+            <a href="account.html" class="nav-icon-btn" id="account-link" title="Account" aria-label="Account" style="display:none"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></a>
+            <a href="login.html" id="login-btn" class="btn btn-accent btn-sm" style="margin-left:8px;">Login</a>
+            <a href="#" id="logout-btn" class="btn btn-outline btn-sm" style="display:none;margin-left:8px;" onclick="logout(); return false;">Logout</a>
+        </div>
+    </header>
+    <div class="category-strip"><div class="category-strip-inner" id="category-strip"></div></div>
+
+    <div class="auth-layout">
+        <!-- Left: Marketing Hero -->
+        <div class="auth-hero">
+            <h1>Your Style,<br><span>Delivered</span></h1>
+            <p>Join ShopCloud and unlock a smarter way to shop. Members enjoy exclusive perks, personalized picks, and a seamless checkout experience.</p>
+
+            <ul class="auth-features">
+                <li>
+                    <span class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="1" y="6" width="22" height="15" rx="2"/><path d="M1 10h22"/></svg></span>
+                    <div><strong>Free Shipping</strong><br><small style="color:rgba(255,255,255,0.6)">On every order over $50</small></div>
+                </li>
+                <li>
+                    <span class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
+                    <div><strong>Exclusive Deals</strong><br><small style="color:rgba(255,255,255,0.6)">Member-only discounts &amp; early access</small></div>
+                </li>
+                <li>
+                    <span class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+                    <div><strong>Real-Time Tracking</strong><br><small style="color:rgba(255,255,255,0.6)">Follow your order every step of the way</small></div>
+                </li>
+                <li>
+                    <span class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span>
+                    <div><strong>Wishlist &amp; Favorites</strong><br><small style="color:rgba(255,255,255,0.6)">Save items and get back-in-stock alerts</small></div>
+                </li>
+            </ul>
+
+            <!-- Customer Testimonial -->
+            <div class="auth-testimonial">
+                <div class="testimonial-stars">
+                    <span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span>
+                </div>
+                <p>"Fast delivery, great selection, and the order tracking is fantastic. My go-to for everything from electronics to skincare."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar">S</div>
+                    <div><strong>Sarah M.</strong><br><small>Verified Buyer</small></div>
+                </div>
+            </div>
+
+            <!-- Browse Categories -->
+            <div class="auth-categories">
+                <small style="text-transform:uppercase;letter-spacing:1.5px;font-size:11px;color:rgba(255,255,255,0.5);display:block;margin-bottom:12px;">Shop by Category</small>
+                <div class="auth-category-tags">
+                    <a href="index.html" class="auth-cat-tag">Electronics</a>
+                    <a href="index.html" class="auth-cat-tag">Clothing</a>
+                    <a href="index.html" class="auth-cat-tag">Home &amp; Kitchen</a>
+                    <a href="index.html" class="auth-cat-tag">Sports</a>
+                    <a href="index.html" class="auth-cat-tag">Books</a>
+                    <a href="index.html" class="auth-cat-tag">Beauty</a>
+                </div>
+            </div>
+
+            <div class="auth-stats">
+                <div><strong>10K+</strong><span>Happy Customers</span></div>
+                <div><strong>25+</strong><span>Products</span></div>
+                <div><strong>4.8</strong><span>Avg Rating</span></div>
+            </div>
+        </div>
+
+        <!-- Right: Auth Form -->
+        <div class="auth-form-side">
+            <div class="auth-form-wrapper">
+                <h2 id="auth-heading">Welcome back</h2>
+                <p class="auth-subtitle" id="auth-subtitle">Sign in to your account to continue</p>
+
+                <!-- Persistent inline status (does not auto-dismiss) -->
+                <div id="auth-status" class="auth-status" style="display:none" role="status" aria-live="polite"></div>
+
+                <!-- Tabs -->
+                <div class="auth-tabs">
+                    <button class="auth-tab active" id="tab-signin" onclick="switchTab('signin')">Sign In</button>
+                    <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Create Account</button>
+                </div>
+
+                <!-- Sign In Form -->
+                <form class="auth-form" id="signin-form" onsubmit="handleSignIn(event)">
+                    <div class="form-group">
+                        <label for="signin-email">Email Address</label>
+                        <div class="input-wrapper">
+                            <input type="email" id="signin-email" placeholder="you@example.com" required autocomplete="email">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="signin-password">Password</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="signin-password" class="has-icon" placeholder="Enter your password" required autocomplete="current-password">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('signin-password', this)" aria-label="Toggle password">&#128065;</button>
+                        </div>
+                    </div>
+                    <div class="auth-form-options">
+                        <label><input type="checkbox" id="remember-me"> Remember me</label>
+                        <a href="#" onclick="showForgotPassword(); return false;">Forgot password?</a>
+                    </div>
+                    <button type="submit" id="signin-submit" class="btn btn-primary btn-lg" style="width:100%">Sign In</button>
+                </form>
+
+                <!-- Email Verification Form (shown after signup) -->
+                <form class="auth-form" id="verify-form" style="display:none" onsubmit="handleVerify(event)">
+                    <p class="auth-subtitle" style="margin-bottom:16px">We sent a 6-digit verification code to <strong id="verify-email-display"></strong>. Enter it below to activate your account.</p>
+                    <div class="form-group">
+                        <label for="verify-code">Verification Code</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="verify-code" placeholder="123456" required autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6">
+                        </div>
+                    </div>
+                    <button type="submit" id="verify-submit" class="btn btn-primary btn-lg" style="width:100%">Verify & Sign In</button>
+                    <p style="text-align:center;margin-top:12px;font-size:14px"><a href="#" onclick="resendVerificationCode(); return false;">Resend code</a> &middot; <a href="#" onclick="switchTab('signin'); return false;">Back to sign in</a></p>
+                </form>
+
+                <!-- Forgot Password Form -->
+                <form class="auth-form" id="forgot-form" style="display:none" onsubmit="handleForgotPassword(event)">
+                    <p class="auth-subtitle" style="margin-bottom:16px">Enter your email and we'll send you a code to reset your password.</p>
+                    <div class="form-group">
+                        <label for="forgot-email">Email Address</label>
+                        <div class="input-wrapper">
+                            <input type="email" id="forgot-email" placeholder="you@example.com" required autocomplete="email">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width:100%">Send Reset Code</button>
+                    <p style="text-align:center;margin-top:12px;font-size:14px"><a href="#" onclick="switchTab('signin'); return false;">Back to sign in</a></p>
+                </form>
+
+                <!-- Reset Password Form (after forgot code sent) -->
+                <form class="auth-form" id="reset-form" style="display:none" onsubmit="handleResetPassword(event)">
+                    <p class="auth-subtitle" style="margin-bottom:16px">We sent a code to <strong id="reset-email-display"></strong>. Enter it below along with your new password.</p>
+                    <div class="form-group">
+                        <label for="reset-code">Verification Code</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="reset-code" placeholder="123456" required autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="reset-password">New Password</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="reset-password" class="has-icon" placeholder="New password" required autocomplete="new-password">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('reset-password', this)" aria-label="Toggle password">&#128065;</button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width:100%">Reset Password</button>
+                    <p style="text-align:center;margin-top:12px;font-size:14px"><a href="#" onclick="switchTab('signin'); return false;">Back to sign in</a></p>
+                </form>
+
+                <!-- Register Form -->
+                <form class="auth-form" id="register-form" style="display:none" onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label for="register-name">Full Name</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="register-name" placeholder="John Doe" required autocomplete="name">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email">Email Address</label>
+                        <div class="input-wrapper">
+                            <input type="email" id="register-email" placeholder="you@example.com" required autocomplete="email">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password">Password</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="register-password" class="has-icon" placeholder="Create a password" required autocomplete="new-password" oninput="updateStrength(this.value)">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('register-password', this)" aria-label="Toggle password">&#128065;</button>
+                        </div>
+                        <div class="password-strength">
+                            <div class="strength-bar" id="str-1"></div>
+                            <div class="strength-bar" id="str-2"></div>
+                            <div class="strength-bar" id="str-3"></div>
+                            <div class="strength-bar" id="str-4"></div>
+                        </div>
+                        <div class="strength-text" id="strength-text"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-confirm">Confirm Password</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="register-confirm" class="has-icon" placeholder="Confirm your password" required autocomplete="new-password">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('register-confirm', this)" aria-label="Toggle password">&#128065;</button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width:100%">Create Account</button>
+                    <p class="auth-terms">By creating an account, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a></p>
+                </form>
+
+                <!-- Social Login Divider (hidden: Google IdP not configured in Cognito) -->
+                <div class="auth-divider" id="social-divider" style="display:none">or continue with</div>
+                <div class="social-buttons" id="social-buttons" style="display:none">
+                    <button type="button" class="btn-social btn-google" onclick="socialLogin('google')">
+                        <span class="social-icon"><svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18A11.96 11.96 0 0 0 0 12c0 1.94.46 3.77 1.28 5.4l3.56-2.77z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></span>
+                        Continue with Google
+                    </button>
+                </div>
+
+                <!-- Auth Switch -->
+                <div class="auth-switch" id="auth-switch">
+                    Don't have an account? <a onclick="switchTab('register')">Sign up</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mobile-overlay" class="mobile-overlay" onclick="closeMobileMenu()"></div>
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        /* ── Tab Switching ── */
+        function switchTab(tab) {
+            // Clear inline status when the user manually clicks a tab. The handlers
+            // re-set it after a switchTab() in their own success/error branches.
+            if (typeof _clearStatus === "function") _clearStatus();
+            const allForms = ["signin-form", "register-form", "verify-form", "forgot-form", "reset-form"];
+            allForms.forEach(id => { const el = document.getElementById(id); if (el) el.style.display = "none"; });
+
+            const tabSignin = document.getElementById("tab-signin");
+            const tabRegister = document.getElementById("tab-register");
+            const heading = document.getElementById("auth-heading");
+            const subtitle = document.getElementById("auth-subtitle");
+            const authSwitch = document.getElementById("auth-switch");
+            const socialDivider = document.getElementById("social-divider");
+            const socialButtons = document.getElementById("social-buttons");
+            const tabsBar = document.querySelector(".auth-tabs");
+
+            const showTabs = (tab === "signin" || tab === "register");
+            if (tabsBar) tabsBar.style.display = showTabs ? "" : "none";
+            // Social login intentionally hidden — Google IdP is not configured in the prod Cognito user pool.
+            if (socialDivider) socialDivider.style.display = "none";
+            if (socialButtons) socialButtons.style.display = "none";
+            if (authSwitch) authSwitch.style.display = showTabs ? "" : "none";
+
+            if (tab === "register") {
+                document.getElementById("register-form").style.display = "block";
+                tabSignin.classList.remove("active");
+                tabRegister.classList.add("active");
+                heading.textContent = "Create account";
+                subtitle.textContent = "Join ShopCloud for a personalized experience";
+                authSwitch.innerHTML = 'Already have an account? <a onclick="switchTab(\'signin\')">Sign in</a>';
+            } else if (tab === "verify") {
+                document.getElementById("verify-form").style.display = "block";
+                heading.textContent = "Verify your email";
+                subtitle.textContent = "";
+            } else if (tab === "forgot") {
+                document.getElementById("forgot-form").style.display = "block";
+                heading.textContent = "Forgot password";
+                subtitle.textContent = "";
+            } else if (tab === "reset") {
+                document.getElementById("reset-form").style.display = "block";
+                heading.textContent = "Reset password";
+                subtitle.textContent = "";
+            } else {
+                document.getElementById("signin-form").style.display = "block";
+                tabSignin.classList.add("active");
+                tabRegister.classList.remove("active");
+                heading.textContent = "Welcome back";
+                subtitle.textContent = "Sign in to your account to continue";
+                authSwitch.innerHTML = 'Don\'t have an account? <a onclick="switchTab(\'register\')">Sign up</a>';
+            }
+        }
+
+        /* ── Password Visibility Toggle ── */
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (input.type === "password") {
+                input.type = "text";
+                btn.innerHTML = "&#128064;";
+            } else {
+                input.type = "password";
+                btn.innerHTML = "&#128065;";
+            }
+        }
+
+        /* ── Password Strength Meter ── */
+        function updateStrength(password) {
+            let score = 0;
+            if (password.length >= 8) score++;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+            if (/\d/.test(password)) score++;
+            if (/[^a-zA-Z\d]/.test(password)) score++;
+
+            const levels = ["", "weak", "fair", "good", "strong"];
+            const labels = ["", "Weak", "Fair", "Good", "Strong"];
+            const colors = ["", "var(--danger)", "var(--warning)", "#84cc16", "var(--success)"];
+
+            for (let i = 1; i <= 4; i++) {
+                const bar = document.getElementById("str-" + i);
+                bar.className = "strength-bar" + (i <= score ? " " + levels[score] : "");
+            }
+
+            const text = document.getElementById("strength-text");
+            if (password.length === 0) {
+                text.textContent = "";
+            } else {
+                text.textContent = labels[score] + " password";
+                text.style.color = colors[score];
+            }
+        }
+
+        /* ── Persistent inline status banner ── */
+        function _setStatus(message, type) {
+            const el = document.getElementById("auth-status");
+            if (!el) return;
+            if (!message) { el.style.display = "none"; el.textContent = ""; return; }
+            el.className = "auth-status " + (type || "info");
+            el.textContent = message;
+            el.style.display = "";
+            // Make sure the user actually sees it on small screens.
+            try { el.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (_) {}
+        }
+        function _clearStatus() { _setStatus("", null); }
+
+        /* ── Pending state for verification flow ── */
+        let _pendingEmail = null;
+
+        function _setBtnLoading(id, loading, originalText) {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            if (loading) { btn.dataset.original = btn.textContent; btn.disabled = true; btn.textContent = "Please wait..."; }
+            else { btn.disabled = false; btn.textContent = btn.dataset.original || originalText || "Submit"; }
+        }
+
+        /* ── Sign In Handler ── */
+        async function handleSignIn(e) {
+            e.preventDefault();
+            _clearStatus();
+            const email = document.getElementById("signin-email").value.trim();
+            const password = document.getElementById("signin-password").value;
+
+            if (isDevMode()) { devLogin(email, password); return; }
+
+            _setBtnLoading("signin-submit", true);
+            try {
+                await cognitoSignIn(email, password);
+                const remember = document.getElementById("remember-me");
+                if (remember && remember.checked) localStorage.setItem("shopcloud_email", email);
+                else localStorage.removeItem("shopcloud_email");
+                _setStatus("Signed in! Redirecting...", "success");
+                showToast("Welcome back!", "success");
+                setTimeout(() => { window.location.href = "index.html"; }, 600);
+            } catch (err) {
+                if (err.code === "UserNotConfirmedException") {
+                    _pendingEmail = email;
+                    document.getElementById("verify-email-display").textContent = email;
+                    switchTab("verify");
+                    _setStatus(`Your email isn't verified yet. We just sent a new 6-digit code to ${email}. Enter it below.`, "info");
+                    showToast("Please verify your email to continue.", "info");
+                    try { await cognitoResendCode(email); } catch (_) {}
+                } else {
+                    _setStatus(_friendlyCognitoError(err), "error");
+                    showToast(_friendlyCognitoError(err), "error");
+                }
+            } finally { _setBtnLoading("signin-submit", false, "Sign In"); }
+        }
+
+        /* ── Register Handler ── */
+        async function handleRegister(e) {
+            e.preventDefault();
+            _clearStatus();
+            const name = document.getElementById("register-name").value.trim();
+            const email = document.getElementById("register-email").value.trim();
+            const password = document.getElementById("register-password").value;
+            const confirm = document.getElementById("register-confirm").value;
+
+            if (password !== confirm) { _setStatus("Passwords do not match", "error"); showToast("Passwords do not match", "error"); return; }
+            if (password.length < 8)  { _setStatus("Password must be at least 8 characters", "error"); showToast("Password must be at least 8 characters", "error"); return; }
+
+            if (isDevMode()) { devRegister(name, email, password); return; }
+
+            try {
+                await cognitoSignUp(email, password, name);
+                _pendingEmail = email;
+                localStorage.setItem("shopcloud_pending_password", password);
+                document.getElementById("verify-email-display").textContent = email;
+                switchTab("verify");
+                _setStatus(`Account created. We sent a 6-digit verification code to ${email}. Check your inbox (and spam folder), then enter the code below.`, "success");
+                showToast("Account created! Check your email for the verification code.", "success");
+            } catch (err) {
+                if (err.code === "UsernameExistsException") {
+                    switchTab("signin");
+                    document.getElementById("signin-email").value = email;
+                    _setStatus("An account with this email already exists. Please sign in.", "info");
+                    showToast("Account exists. Please sign in.", "info");
+                } else {
+                    _setStatus(_friendlyCognitoError(err), "error");
+                    showToast(_friendlyCognitoError(err), "error");
+                }
+            }
+        }
+
+        /* ── Verify Code Handler ── */
+        async function handleVerify(e) {
+            e.preventDefault();
+            const code = document.getElementById("verify-code").value.trim();
+            const email = _pendingEmail || document.getElementById("signin-email").value.trim();
+            if (!email) { showToast("Email missing — please sign in again.", "error"); switchTab("signin"); return; }
+
+            _setBtnLoading("verify-submit", true);
+            try {
+                await cognitoConfirmSignUp(email, code);
+                const pwd = localStorage.getItem("shopcloud_pending_password");
+                if (pwd) {
+                    try { await cognitoSignIn(email, pwd); localStorage.removeItem("shopcloud_pending_password"); }
+                    catch (_) { showToast("Verified! Please sign in.", "success"); switchTab("signin"); return; }
+                    showToast("Welcome to ShopCloud!", "success");
+                    setTimeout(() => { window.location.href = "index.html"; }, 400);
+                } else {
+                    showToast("Email verified! Please sign in.", "success");
+                    switchTab("signin");
+                }
+            } catch (err) { showToast(_friendlyCognitoError(err), "error"); }
+            finally { _setBtnLoading("verify-submit", false, "Verify & Sign In"); }
+        }
+
+        async function resendVerificationCode() {
+            const email = _pendingEmail;
+            if (!email) { showToast("Please sign up first.", "error"); return; }
+            try { await cognitoResendCode(email); showToast("New code sent to your email.", "success"); }
+            catch (err) { showToast(_friendlyCognitoError(err), "error"); }
+        }
+
+        /* ── Social Login ── */
+        function socialLogin(provider) {
+            if (isDevMode()) { devLogin("user@gmail.com", "google-auth"); return; }
+            const url = getLoginUrl() + "&identity_provider=Google";
+            window.location.href = url;
+        }
+
+        /* ── Forgot Password ── */
+        function showForgotPassword() {
+            if (isDevMode()) { showToast("A password reset link has been sent to your email", "success"); return; }
+            const currentEmail = document.getElementById("signin-email").value.trim();
+            if (currentEmail) document.getElementById("forgot-email").value = currentEmail;
+            switchTab("forgot");
+        }
+
+        async function handleForgotPassword(e) {
+            e.preventDefault();
+            const email = document.getElementById("forgot-email").value.trim();
+            try {
+                await cognitoForgotPassword(email);
+                _pendingEmail = email;
+                document.getElementById("reset-email-display").textContent = email;
+                switchTab("reset");
+                showToast("Reset code sent to your email.", "success");
+            } catch (err) { showToast(_friendlyCognitoError(err), "error"); }
+        }
+
+        async function handleResetPassword(e) {
+            e.preventDefault();
+            const email = _pendingEmail || document.getElementById("forgot-email").value.trim();
+            const code = document.getElementById("reset-code").value.trim();
+            const newPassword = document.getElementById("reset-password").value;
+            try {
+                await cognitoConfirmForgotPassword(email, code, newPassword);
+                showToast("Password reset! Signing you in...", "success");
+                try {
+                    await cognitoSignIn(email, newPassword);
+                    setTimeout(() => { window.location.href = "index.html"; }, 400);
+                } catch (_) { switchTab("signin"); document.getElementById("signin-email").value = email; }
+            } catch (err) { showToast(_friendlyCognitoError(err), "error"); }
+        }
+
+        /* ── Init ── */
+        document.addEventListener("DOMContentLoaded", () => {
+            if (isLoggedIn()) {
+                window.location.href = "index.html";
+                return;
+            }
+
+            // Pre-fill email if returning user
+            const savedEmail = localStorage.getItem("shopcloud_email");
+            if (savedEmail) {
+                document.getElementById("signin-email").value = savedEmail;
+                document.getElementById("remember-me").checked = true;
+            }
+
+            // If URL has ?tab=register, switch to register tab
+            const params = new URLSearchParams(window.location.search);
+            if (params.get("tab") === "register") {
+                switchTab("register");
+            }
+        });
+    </script>
+</body>
+</html>
