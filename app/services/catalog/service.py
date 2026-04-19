@@ -1,7 +1,7 @@
 import math
 from datetime import datetime, timezone
 
-from sqlalchemy import case, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -27,7 +27,7 @@ async def list_products(
     page: int = 1,
     per_page: int = 20,
 ) -> dict:
-    filters = [Product.is_active == True]
+    filters = [Product.is_active]
     if category_id:
         filters.append(Product.category_id == category_id)
     if min_price is not None:
@@ -59,7 +59,7 @@ async def list_products(
 async def get_product(db: AsyncSession, product_id: int) -> Product | None:
     query = (
         select(Product)
-        .where(Product.id == product_id, Product.is_active == True)
+        .where(Product.id == product_id, Product.is_active)
         .options(joinedload(Product.category))
     )
     result = await db.execute(query)
@@ -77,7 +77,7 @@ async def search_products(
 ) -> dict:
     ts_query = func.plainto_tsquery("english", query_text)
 
-    filters = [Product.is_active == True, Product.search_vector.op("@@")(ts_query)]
+    filters = [Product.is_active, Product.search_vector.op("@@")(ts_query)]
     if category_id:
         filters.append(Product.category_id == category_id)
     if min_price is not None:
@@ -115,7 +115,7 @@ async def get_price_range(db: AsyncSession) -> dict:
         select(
             func.coalesce(func.min(Product.price), 0),
             func.coalesce(func.max(Product.price), 0),
-        ).where(Product.is_active == True)
+        ).where(Product.is_active)
     )
     row = result.first()
     return {"min": float(row[0]), "max": float(row[1])}
@@ -129,7 +129,7 @@ async def list_categories(db: AsyncSession) -> list[Category]:
 async def list_best_sellers(db: AsyncSession, limit: int = 8) -> list[Product]:
     query = (
         select(Product)
-        .where(Product.is_active == True)
+        .where(Product.is_active)
         .options(joinedload(Product.category))
         .order_by(Product.sales_count.desc(), Product.avg_rating.desc())
         .limit(limit)
@@ -141,7 +141,7 @@ async def list_best_sellers(db: AsyncSession, limit: int = 8) -> list[Product]:
 async def list_new_arrivals(db: AsyncSession, limit: int = 8) -> list[Product]:
     query = (
         select(Product)
-        .where(Product.is_active == True)
+        .where(Product.is_active)
         .options(joinedload(Product.category))
         .order_by(Product.created_at.desc())
         .limit(limit)
@@ -150,17 +150,17 @@ async def list_new_arrivals(db: AsyncSession, limit: int = 8) -> list[Product]:
     return result.unique().scalars().all()
 
 
-async def list_related(db: AsyncSession, product_id: int, limit: int = 4) -> list[Product]:
-    base = await db.execute(
-        select(Product.category_id).where(Product.id == product_id)
-    )
+async def list_related(
+    db: AsyncSession, product_id: int, limit: int = 4
+) -> list[Product]:
+    base = await db.execute(select(Product.category_id).where(Product.id == product_id))
     category_id = base.scalar()
     if category_id is None:
         return []
     query = (
         select(Product)
         .where(
-            Product.is_active == True,
+            Product.is_active,
             Product.category_id == category_id,
             Product.id != product_id,
         )
@@ -250,15 +250,15 @@ async def create_review(
 
 async def list_promotions(db: AsyncSession, slot: str | None = None) -> list[Promotion]:
     now = datetime.now(timezone.utc)
-    filters = [Promotion.is_active == True]
+    filters = [Promotion.is_active]
     if slot:
         filters.append(Promotion.slot == slot)
     query = (
         select(Promotion)
         .where(
             *filters,
-            (Promotion.starts_at == None) | (Promotion.starts_at <= now),
-            (Promotion.ends_at == None) | (Promotion.ends_at >= now),
+            (Promotion.starts_at is None) | (Promotion.starts_at <= now),
+            (Promotion.ends_at is None) | (Promotion.ends_at >= now),
         )
         .order_by(Promotion.sort_order.asc(), Promotion.id.asc())
     )
@@ -269,7 +269,7 @@ async def list_promotions(db: AsyncSession, slot: str | None = None) -> list[Pro
 async def list_testimonials(db: AsyncSession, limit: int = 6) -> list[Testimonial]:
     query = (
         select(Testimonial)
-        .where(Testimonial.is_active == True)
+        .where(Testimonial.is_active)
         .order_by(Testimonial.sort_order.asc(), Testimonial.id.asc())
         .limit(limit)
     )

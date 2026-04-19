@@ -1,9 +1,6 @@
 import pytest
-import pytest_asyncio
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models import Category, Product
 from services.catalog import service
 
 
@@ -24,8 +21,12 @@ async def test_list_products_pagination(db_session: AsyncSession, sample_product
 
 
 @pytest.mark.asyncio
-async def test_list_products_by_category(db_session: AsyncSession, sample_products, sample_category):
-    result = await service.list_products(db_session, page=1, per_page=10, category_id=sample_category.id)
+async def test_list_products_by_category(
+    db_session: AsyncSession, sample_products, sample_category
+):
+    result = await service.list_products(
+        db_session, page=1, per_page=10, category_id=sample_category.id
+    )
     assert result["total"] == 3
     assert all(p.category_id == sample_category.id for p in result["items"])
 

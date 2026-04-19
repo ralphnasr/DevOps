@@ -4,6 +4,7 @@ Revision ID: 001
 Revises:
 Create Date: 2026-04-15
 """
+
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
@@ -21,7 +22,9 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("name", sa.String(100), nullable=False, unique=True),
         sa.Column("description", sa.Text()),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
     )
 
     # ── Products ──
@@ -31,18 +34,28 @@ def upgrade() -> None:
         sa.Column("name", sa.String(255), nullable=False),
         sa.Column("description", sa.Text()),
         sa.Column("price", sa.Numeric(10, 2), nullable=False),
-        sa.Column("category_id", sa.Integer(), sa.ForeignKey("categories.id", ondelete="SET NULL")),
+        sa.Column(
+            "category_id",
+            sa.Integer(),
+            sa.ForeignKey("categories.id", ondelete="SET NULL"),
+        ),
         sa.Column("image_url", sa.String(500)),
         sa.Column("attributes", postgresql.JSONB(), server_default="{}"),
         sa.Column("stock_quantity", sa.Integer(), nullable=False, server_default="0"),
         sa.Column("is_active", sa.Boolean(), server_default="true"),
         sa.Column("search_vector", postgresql.TSVECTOR()),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
         sa.CheckConstraint("price >= 0", name="ck_products_price_positive"),
         sa.CheckConstraint("stock_quantity >= 0", name="ck_products_stock_positive"),
     )
-    op.create_index("idx_products_search", "products", ["search_vector"], postgresql_using="gin")
+    op.create_index(
+        "idx_products_search", "products", ["search_vector"], postgresql_using="gin"
+    )
     op.create_index("idx_products_category", "products", ["category_id"])
     op.create_index(
         "idx_products_active",
@@ -77,7 +90,9 @@ def upgrade() -> None:
         sa.Column("cognito_sub", sa.String(255), unique=True, nullable=False),
         sa.Column("email", sa.String(255), nullable=False),
         sa.Column("full_name", sa.String(255)),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
     )
     op.create_index("idx_customers_cognito", "customers", ["cognito_sub"])
 
@@ -85,12 +100,18 @@ def upgrade() -> None:
     op.create_table(
         "orders",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("customer_id", sa.Integer(), sa.ForeignKey("customers.id"), nullable=False),
+        sa.Column(
+            "customer_id", sa.Integer(), sa.ForeignKey("customers.id"), nullable=False
+        ),
         sa.Column("status", sa.String(50), nullable=False, server_default="confirmed"),
         sa.Column("total_amount", sa.Numeric(10, 2), nullable=False),
         sa.Column("invoice_url", sa.String(500)),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
         sa.CheckConstraint(
             "status IN ('confirmed', 'processing', 'shipped', 'delivered', 'cancelled')",
             name="ck_orders_status_valid",
@@ -104,8 +125,15 @@ def upgrade() -> None:
     op.create_table(
         "order_items",
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("order_id", sa.Integer(), sa.ForeignKey("orders.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("product_id", sa.Integer(), sa.ForeignKey("products.id"), nullable=False),
+        sa.Column(
+            "order_id",
+            sa.Integer(),
+            sa.ForeignKey("orders.id", ondelete="CASCADE"),
+            nullable=False,
+        ),
+        sa.Column(
+            "product_id", sa.Integer(), sa.ForeignKey("products.id"), nullable=False
+        ),
         sa.Column("quantity", sa.Integer(), nullable=False),
         sa.Column("unit_price", sa.Numeric(10, 2), nullable=False),
         sa.CheckConstraint("quantity > 0", name="ck_order_items_quantity_positive"),

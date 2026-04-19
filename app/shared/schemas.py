@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 
 # ── Pagination ──
 
+
 class PaginatedResponse(BaseModel):
     items: list[Any] = []
     total: int = 0
@@ -16,6 +17,7 @@ class PaginatedResponse(BaseModel):
 
 # ── Category ──
 
+
 class CategoryOut(BaseModel):
     id: int
     name: str
@@ -25,6 +27,7 @@ class CategoryOut(BaseModel):
 
 
 # ── Product ──
+
 
 class ProductOut(BaseModel):
     id: int
@@ -53,6 +56,7 @@ class ProductList(PaginatedResponse):
 
 # ── Cart ──
 
+
 class CartItem(BaseModel):
     product_id: int
     name: str = ""
@@ -75,6 +79,7 @@ class UpdateCartRequest(BaseModel):
 
 
 # ── Checkout / Orders ──
+
 
 class CheckoutRequest(BaseModel):
     coupon_code: str | None = None
@@ -141,6 +146,7 @@ class ReorderResponse(BaseModel):
 
 # ── Admin ──
 
+
 class AdminProductCreate(BaseModel):
     name: str
     description: str | None = None
@@ -172,12 +178,14 @@ class AdminOrderStatusUpdate(BaseModel):
 
 # ── Health ──
 
+
 class HealthResponse(BaseModel):
     status: str = "healthy"
     service: str = ""
 
 
 # ── Dashboard ──
+
 
 class DashboardStats(BaseModel):
     total_orders: int = 0
@@ -187,6 +195,7 @@ class DashboardStats(BaseModel):
 
 
 # ── Coupons (admin) ──
+
 
 class AdminCouponCreate(BaseModel):
     code: str = Field(min_length=3, max_length=50)
@@ -226,6 +235,7 @@ class CouponOut(BaseModel):
 
 # ── Reviews ──
 
+
 class ReviewOut(BaseModel):
     id: int
     product_id: int
@@ -255,6 +265,7 @@ class ReviewSummary(BaseModel):
 
 # ── Promotions / Testimonials ──
 
+
 class PromotionOut(BaseModel):
     id: int
     slot: str
@@ -282,6 +293,7 @@ class TestimonialOut(BaseModel):
 
 
 # ── Analytics ──
+
 
 class DailyRevenuePoint(BaseModel):
     date: str

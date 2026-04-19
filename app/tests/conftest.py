@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -14,6 +13,7 @@ from shared.models import Base, Category, Product
 
 
 # ── Test database ──
+
 
 def _derive_test_db_url(url: str) -> str:
     # Only swap the database name (path component), not user/host segments
@@ -63,6 +63,7 @@ async def db_session(test_engine):
 
 # ── Mock Redis ──
 
+
 @pytest.fixture
 def mock_redis():
     r = AsyncMock()
@@ -76,6 +77,7 @@ def mock_redis():
 
 # ── Mock SQS ──
 
+
 @pytest.fixture
 def mock_sqs():
     client = MagicMock()
@@ -84,6 +86,7 @@ def mock_sqs():
 
 
 # ── Auth fixtures ──
+
 
 @pytest.fixture
 def current_user():
@@ -96,6 +99,7 @@ def admin_user():
 
 
 # ── Test data ──
+
 
 @pytest_asyncio.fixture
 async def sample_category(db_session: AsyncSession):
@@ -110,13 +114,13 @@ async def sample_products(db_session: AsyncSession, sample_category):
     products = []
     for i in range(3):
         p = Product(
-            name=f"Test Product {i+1}",
-            description=f"Description for product {i+1}",
+            name=f"Test Product {i + 1}",
+            description=f"Description for product {i + 1}",
             price=10.00 * (i + 1),
             category_id=sample_category.id,
             stock_quantity=50,
             is_active=True,
-            attributes={"test_key": f"value_{i+1}"},
+            attributes={"test_key": f"value_{i + 1}"},
         )
         db_session.add(p)
         products.append(p)
@@ -125,6 +129,7 @@ async def sample_products(db_session: AsyncSession, sample_category):
 
 
 # ── HTTP Client fixtures ──
+
 
 def _get_catalog_client(db_session, current_user):
     from entrypoints.catalog import app

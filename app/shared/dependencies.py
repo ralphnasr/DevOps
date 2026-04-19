@@ -1,8 +1,11 @@
-from fastapi import Depends, Request
+from fastapi import Request
 
-from shared.auth import AdminUser, CurrentUser, validate_admin_token, validate_customer_token
-from shared.database import get_db
-from shared.redis_client import get_redis
+from shared.auth import (
+    AdminUser,
+    CurrentUser,
+    validate_admin_token,
+    validate_customer_token,
+)
 
 
 async def get_current_user(request: Request) -> CurrentUser:

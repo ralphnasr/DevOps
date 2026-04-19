@@ -44,7 +44,9 @@ async def test_create_product(db_session: AsyncSession, sample_category):
 
 @pytest.mark.asyncio
 async def test_update_product(db_session: AsyncSession, sample_products):
-    updated = await service.update_product(db_session, sample_products[0].id, {"name": "Updated Name"})
+    updated = await service.update_product(
+        db_session, sample_products[0].id, {"name": "Updated Name"}
+    )
     assert updated is not None
     assert updated.name == "Updated Name"
 
@@ -63,18 +65,24 @@ async def test_update_order_status_invalid(db_session: AsyncSession):
 
 # ── Batch E: admin compliance fixes ──
 
+
 @pytest.mark.asyncio
-async def test_revenue_excludes_cancelled_orders(db_session: AsyncSession, sample_products):
+async def test_revenue_excludes_cancelled_orders(
+    db_session: AsyncSession, sample_products
+):
     """Batch E: total_revenue must not count cancelled orders."""
     from shared.models import Customer, Order
+
     customer = Customer(cognito_sub="cust-1", email="a@x.com")
     db_session.add(customer)
     await db_session.flush()
-    db_session.add_all([
-        Order(customer_id=customer.id, total_amount=100, status="confirmed"),
-        Order(customer_id=customer.id, total_amount=50, status="cancelled"),
-        Order(customer_id=customer.id, total_amount=25, status="delivered"),
-    ])
+    db_session.add_all(
+        [
+            Order(customer_id=customer.id, total_amount=100, status="confirmed"),
+            Order(customer_id=customer.id, total_amount=50, status="cancelled"),
+            Order(customer_id=customer.id, total_amount=25, status="delivered"),
+        ]
+    )
     await db_session.commit()
     stats = await service.get_dashboard_stats(db_session)
     assert float(stats["total_revenue"]) == 125.0
@@ -85,11 +93,32 @@ async def test_revenue_excludes_cancelled_orders(db_session: AsyncSession, sampl
 async def test_active_count_requires_stock(db_session: AsyncSession, sample_category):
     """Batch E: 'Active Products' = is_active AND stock_quantity > 0."""
     from shared.models import Product
-    db_session.add_all([
-        Product(name="A", price=10, category_id=sample_category.id, is_active=True, stock_quantity=5),
-        Product(name="B", price=10, category_id=sample_category.id, is_active=True, stock_quantity=0),
-        Product(name="C", price=10, category_id=sample_category.id, is_active=False, stock_quantity=5),
-    ])
+
+    db_session.add_all(
+        [
+            Product(
+                name="A",
+                price=10,
+                category_id=sample_category.id,
+                is_active=True,
+                stock_quantity=5,
+            ),
+            Product(
+                name="B",
+                price=10,
+                category_id=sample_category.id,
+                is_active=True,
+                stock_quantity=0,
+            ),
+            Product(
+                name="C",
+                price=10,
+                category_id=sample_category.id,
+                is_active=False,
+                stock_quantity=5,
+            ),
+        ]
+    )
     await db_session.commit()
     stats = await service.get_dashboard_stats(db_session)
     assert stats["total_products"] == 1

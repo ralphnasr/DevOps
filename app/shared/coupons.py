@@ -8,7 +8,7 @@ from shared.models import Coupon
 
 async def find_active_coupon(db: AsyncSession, code: str) -> Coupon | None:
     result = await db.execute(
-        select(Coupon).where(Coupon.code == code.upper(), Coupon.is_active == True)
+        select(Coupon).where(Coupon.code == code.upper(), Coupon.is_active)
     )
     return result.scalars().first()
 

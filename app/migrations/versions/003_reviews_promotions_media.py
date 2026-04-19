@@ -4,6 +4,7 @@ Revision ID: 003
 Revises: 002
 Create Date: 2026-04-17
 """
+
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
@@ -16,8 +17,12 @@ depends_on = None
 
 def upgrade() -> None:
     # ── Product gallery + rating + sales counters ──
-    op.add_column("products", sa.Column("images", postgresql.JSONB(), server_default="[]"))
-    op.add_column("products", sa.Column("avg_rating", sa.Numeric(3, 2), server_default="0"))
+    op.add_column(
+        "products", sa.Column("images", postgresql.JSONB(), server_default="[]")
+    )
+    op.add_column(
+        "products", sa.Column("avg_rating", sa.Numeric(3, 2), server_default="0")
+    )
     op.add_column(
         "products",
         sa.Column("review_count", sa.Integer(), server_default="0", nullable=False),
@@ -54,7 +59,9 @@ def upgrade() -> None:
             server_default=sa.func.now(),
             nullable=False,
         ),
-        sa.CheckConstraint("rating >= 1 AND rating <= 5", name="ck_reviews_rating_range"),
+        sa.CheckConstraint(
+            "rating >= 1 AND rating <= 5", name="ck_reviews_rating_range"
+        ),
     )
     op.create_index("idx_reviews_product", "reviews", ["product_id"])
     op.create_index("idx_reviews_created", "reviews", ["created_at"])
@@ -73,16 +80,12 @@ def upgrade() -> None:
         sa.Column("starts_at", sa.DateTime(timezone=True)),
         sa.Column("ends_at", sa.DateTime(timezone=True)),
         sa.Column("is_active", sa.Boolean(), server_default="true", nullable=False),
-        sa.Column(
-            "sort_order", sa.Integer(), server_default="0", nullable=False
-        ),
+        sa.Column("sort_order", sa.Integer(), server_default="0", nullable=False),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now()
         ),
     )
-    op.create_index(
-        "idx_promotions_slot_active", "promotions", ["slot", "is_active"]
-    )
+    op.create_index("idx_promotions_slot_active", "promotions", ["slot", "is_active"])
 
     # ── Testimonials ──
     op.create_table(
@@ -93,9 +96,7 @@ def upgrade() -> None:
         sa.Column("avatar_initials", sa.String(4)),
         sa.Column("quote", sa.Text(), nullable=False),
         sa.Column("rating", sa.Integer(), server_default="5", nullable=False),
-        sa.Column(
-            "sort_order", sa.Integer(), server_default="0", nullable=False
-        ),
+        sa.Column("sort_order", sa.Integer(), server_default="0", nullable=False),
         sa.Column("is_active", sa.Boolean(), server_default="true", nullable=False),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now()

@@ -26,8 +26,12 @@ def _get_sqs():
     return _sqs_client
 
 
-async def _get_or_create_customer(db: AsyncSession, cognito_sub: str, email: str) -> Customer:
-    result = await db.execute(select(Customer).where(Customer.cognito_sub == cognito_sub))
+async def _get_or_create_customer(
+    db: AsyncSession, cognito_sub: str, email: str
+) -> Customer:
+    result = await db.execute(
+        select(Customer).where(Customer.cognito_sub == cognito_sub)
+    )
     customer = result.scalars().first()
     if customer:
         return customer
@@ -106,12 +110,14 @@ async def process_checkout(
 
         item_total = float(product.price) * cart_item["quantity"]
         subtotal += item_total
-        validated_items.append({
-            "product": product,
-            "quantity": cart_item["quantity"],
-            "unit_price": float(product.price),
-            "product_name": product.name,
-        })
+        validated_items.append(
+            {
+                "product": product,
+                "quantity": cart_item["quantity"],
+                "unit_price": float(product.price),
+                "product_name": product.name,
+            }
+        )
 
     subtotal = round(subtotal, 2)
 
@@ -237,7 +243,7 @@ async def reorder(
         prod_result = await db.execute(
             select(Product).where(
                 Product.id == order_item.product_id,
-                Product.is_active == True,
+                Product.is_active,
             )
         )
         product = prod_result.scalars().first()
@@ -251,12 +257,14 @@ async def reorder(
                     ci["quantity"] += order_item.quantity
                     break
         else:
-            cart["items"].append({
-                "product_id": order_item.product_id,
-                "name": product.name,
-                "price": float(product.price),
-                "quantity": order_item.quantity,
-            })
+            cart["items"].append(
+                {
+                    "product_id": order_item.product_id,
+                    "name": product.name,
+                    "price": float(product.price),
+                    "quantity": order_item.quantity,
+                }
+            )
             existing_ids.add(order_item.product_id)
 
         items_added += 1
@@ -282,7 +290,9 @@ async def list_orders(
     per_page: int = 20,
 ) -> dict:
     # Get customer
-    result = await db.execute(select(Customer).where(Customer.cognito_sub == cognito_sub))
+    result = await db.execute(
+        select(Customer).where(Customer.cognito_sub == cognito_sub)
+    )
     customer = result.scalars().first()
     if not customer:
         return {"items": [], "total": 0, "page": page, "per_page": per_page, "pages": 0}
@@ -315,7 +325,9 @@ async def list_orders(
 
 
 async def get_order(db: AsyncSession, cognito_sub: str, order_id: int) -> Order | None:
-    result = await db.execute(select(Customer).where(Customer.cognito_sub == cognito_sub))
+    result = await db.execute(
+        select(Customer).where(Customer.cognito_sub == cognito_sub)
+    )
     customer = result.scalars().first()
     if not customer:
         return None
@@ -329,7 +341,9 @@ async def get_order(db: AsyncSession, cognito_sub: str, order_id: int) -> Order 
 
 
 async def cancel_order(db: AsyncSession, cognito_sub: str, order_id: int) -> Order:
-    result = await db.execute(select(Customer).where(Customer.cognito_sub == cognito_sub))
+    result = await db.execute(
+        select(Customer).where(Customer.cognito_sub == cognito_sub)
+    )
     customer = result.scalars().first()
     if not customer:
         raise ValueError("Customer not found")
@@ -348,9 +362,7 @@ async def cancel_order(db: AsyncSession, cognito_sub: str, order_id: int) -> Ord
         raise ValueError(f"Cannot cancel order with status '{order.status}'")
 
     # Load items separately
-    result = await db.execute(
-        select(OrderItem).where(OrderItem.order_id == order.id)
-    )
+    result = await db.execute(select(OrderItem).where(OrderItem.order_id == order.id))
     items = result.scalars().all()
 
     # Restore stock for each item
@@ -367,9 +379,7 @@ async def cancel_order(db: AsyncSession, cognito_sub: str, order_id: int) -> Ord
 
     # Reload with items for response
     result = await db.execute(
-        select(Order)
-        .where(Order.id == order_id)
-        .options(joinedload(Order.items))
+        select(Order).where(Order.id == order_id).options(joinedload(Order.items))
     )
     order = result.unique().scalars().first()
 

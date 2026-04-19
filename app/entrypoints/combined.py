@@ -15,20 +15,24 @@ from services.catalog.router import router as catalog_router, storefront_router
 from services.cart.router import router as cart_router
 from services.checkout.router import router as checkout_router
 
+
 # -- Logging --
 class JsonFormatter(logging.Formatter):
     def format(self, record):
-        return json.dumps({
-            "timestamp": self.formatTime(record),
-            "level": record.levelname,
-            "service": "combined",
-            "message": record.getMessage(),
-            "request_id": getattr(record, "request_id", None),
-            "method": getattr(record, "method", None),
-            "path": getattr(record, "path", None),
-            "status_code": getattr(record, "status_code", None),
-            "duration_ms": getattr(record, "duration_ms", None),
-        })
+        return json.dumps(
+            {
+                "timestamp": self.formatTime(record),
+                "level": record.levelname,
+                "service": "combined",
+                "message": record.getMessage(),
+                "request_id": getattr(record, "request_id", None),
+                "method": getattr(record, "method", None),
+                "path": getattr(record, "path", None),
+                "status_code": getattr(record, "status_code", None),
+                "duration_ms": getattr(record, "duration_ms", None),
+            }
+        )
+
 
 handler = logging.StreamHandler()
 handler.setFormatter(JsonFormatter())
@@ -110,7 +114,11 @@ async def health():
     except Exception:
         status["redis"] = "unhealthy"
 
-    overall = "healthy" if status["postgres"] == "healthy" and status["redis"] == "healthy" else "degraded"
+    overall = (
+        "healthy"
+        if status["postgres"] == "healthy" and status["redis"] == "healthy"
+        else "degraded"
+    )
     status["status"] = overall
 
     if overall != "healthy":

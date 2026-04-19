@@ -62,7 +62,9 @@ async def validate_customer_token(request: Request) -> CurrentUser:
 
     global _jwks
     if _jwks is None:
-        _jwks = await _fetch_jwks(settings.cognito_user_pool_id, settings.cognito_region)
+        _jwks = await _fetch_jwks(
+            settings.cognito_user_pool_id, settings.cognito_region
+        )
 
     try:
         key = _get_public_key(token, _jwks)
@@ -94,7 +96,9 @@ async def validate_admin_token(request: Request) -> AdminUser:
 
     global _admin_jwks
     if _admin_jwks is None:
-        _admin_jwks = await _fetch_jwks(settings.cognito_admin_pool_id, settings.cognito_region)
+        _admin_jwks = await _fetch_jwks(
+            settings.cognito_admin_pool_id, settings.cognito_region
+        )
 
     try:
         key = _get_public_key(token, _admin_jwks)

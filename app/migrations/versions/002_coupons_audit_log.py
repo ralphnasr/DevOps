@@ -4,6 +4,7 @@ Revision ID: 002
 Revises: 001
 Create Date: 2026-04-17
 """
+
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
@@ -28,12 +29,16 @@ def upgrade() -> None:
         sa.Column("times_used", sa.Integer(), server_default="0", nullable=False),
         sa.Column("valid_until", sa.DateTime(timezone=True)),
         sa.Column("is_active", sa.Boolean(), server_default="true", nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now()),
+        sa.Column(
+            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+        ),
         sa.CheckConstraint(
             "discount_type IN ('percent', 'fixed')",
             name="ck_coupons_discount_type_valid",
         ),
-        sa.CheckConstraint("discount_value > 0", name="ck_coupons_discount_value_positive"),
+        sa.CheckConstraint(
+            "discount_value > 0", name="ck_coupons_discount_value_positive"
+        ),
     )
     op.create_index("idx_coupons_code", "coupons", ["code"])
     op.create_index("idx_coupons_active", "coupons", ["is_active"])
@@ -59,8 +64,12 @@ def upgrade() -> None:
     op.create_index("idx_audit_logs_created", "audit_logs", ["created_at"])
 
     # ── Order discount fields ──
-    op.add_column("orders", sa.Column("subtotal", sa.Numeric(10, 2), server_default="0"))
-    op.add_column("orders", sa.Column("discount_amount", sa.Numeric(10, 2), server_default="0"))
+    op.add_column(
+        "orders", sa.Column("subtotal", sa.Numeric(10, 2), server_default="0")
+    )
+    op.add_column(
+        "orders", sa.Column("discount_amount", sa.Numeric(10, 2), server_default="0")
+    )
     op.add_column("orders", sa.Column("coupon_code", sa.String(50)))
 
 

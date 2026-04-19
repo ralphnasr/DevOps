@@ -2,7 +2,6 @@ import json
 import logging
 import os
 from datetime import datetime
-from io import BytesIO
 
 import boto3
 import psycopg2
@@ -27,7 +26,9 @@ def _get_db_connection():
     )
 
 
-def generate_invoice_pdf(order_id: int, items: list, total_amount: float, created_at: str) -> bytes:
+def generate_invoice_pdf(
+    order_id: int, items: list, total_amount: float, created_at: str
+) -> bytes:
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -43,7 +44,12 @@ def generate_invoice_pdf(order_id: int, items: list, total_amount: float, create
     pdf.set_font("Helvetica", "B", 14)
     pdf.cell(0, 10, f"Invoice - Order #{order_id}", ln=True)
     pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 6, f"Date: {created_at[:10] if created_at else datetime.utcnow().strftime('%Y-%m-%d')}", ln=True)
+    pdf.cell(
+        0,
+        6,
+        f"Date: {created_at[:10] if created_at else datetime.utcnow().strftime('%Y-%m-%d')}",
+        ln=True,
+    )
     pdf.ln(8)
 
     # Separator

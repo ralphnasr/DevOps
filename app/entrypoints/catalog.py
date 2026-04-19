@@ -12,20 +12,24 @@ from shared.config import settings, validate_prod
 from shared.database import engine
 from services.catalog.router import router, storefront_router
 
+
 # ── Logging ──
 class JsonFormatter(logging.Formatter):
     def format(self, record):
-        return json.dumps({
-            "timestamp": self.formatTime(record),
-            "level": record.levelname,
-            "service": "catalog",
-            "message": record.getMessage(),
-            "request_id": getattr(record, "request_id", None),
-            "method": getattr(record, "method", None),
-            "path": getattr(record, "path", None),
-            "status_code": getattr(record, "status_code", None),
-            "duration_ms": getattr(record, "duration_ms", None),
-        })
+        return json.dumps(
+            {
+                "timestamp": self.formatTime(record),
+                "level": record.levelname,
+                "service": "catalog",
+                "message": record.getMessage(),
+                "request_id": getattr(record, "request_id", None),
+                "method": getattr(record, "method", None),
+                "path": getattr(record, "path", None),
+                "status_code": getattr(record, "status_code", None),
+                "duration_ms": getattr(record, "duration_ms", None),
+            }
+        )
+
 
 handler = logging.StreamHandler()
 handler.setFormatter(JsonFormatter())
@@ -88,6 +92,7 @@ async def health():
         return {"status": "healthy", "service": "catalog"}
     except Exception:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=503, detail="Database unreachable")
 
 

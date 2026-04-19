@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,9 +10,6 @@ from shared.database import get_db
 from shared.dependencies import get_current_admin
 from shared.schemas import (
     AdminCouponCreate,
-    AdminCouponUpdate,
-    AdminInventoryUpdate,
-    AdminOrderStatusUpdate,
     AdminProductCreate,
     AdminProductUpdate,
 )
@@ -30,6 +27,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 # ── Dashboard ──
 
+
 @router.get("", response_class=HTMLResponse)
 async def dashboard(
     request: Request,
@@ -37,14 +35,18 @@ async def dashboard(
     db: AsyncSession = Depends(get_db),
 ):
     stats = await service.get_dashboard_stats(db)
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
-        "admin": admin,
-        **stats,
-    })
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "admin": admin,
+            **stats,
+        },
+    )
 
 
 # ── Products ──
+
 
 @router.get("/products", response_class=HTMLResponse)
 async def list_products(
@@ -55,12 +57,15 @@ async def list_products(
     db: AsyncSession = Depends(get_db),
 ):
     result = await service.list_products_admin(db, search=search, page=page)
-    return templates.TemplateResponse("products.html", {
-        "request": request,
-        "admin": admin,
-        "search": search or "",
-        **result,
-    })
+    return templates.TemplateResponse(
+        "products.html",
+        {
+            "request": request,
+            "admin": admin,
+            "search": search or "",
+            **result,
+        },
+    )
 
 
 @router.get("/products/new", response_class=HTMLResponse)
@@ -70,12 +75,15 @@ async def new_product_form(
     db: AsyncSession = Depends(get_db),
 ):
     categories = await service.list_categories(db)
-    return templates.TemplateResponse("product_form.html", {
-        "request": request,
-        "admin": admin,
-        "product": None,
-        "categories": categories,
-    })
+    return templates.TemplateResponse(
+        "product_form.html",
+        {
+            "request": request,
+            "admin": admin,
+            "product": None,
+            "categories": categories,
+        },
+    )
 
 
 @router.post("/products")
@@ -95,7 +103,11 @@ async def create_product(
     )
     product = await service.create_product(db, data.model_dump(exclude_none=True))
     await service.log_audit(
-        db, admin.email, "product.create", "product", product.id,
+        db,
+        admin.email,
+        "product.create",
+        "product",
+        product.id,
         {"name": product.name, "price": float(product.price)},
     )
     return RedirectResponse(url="/admin/products", status_code=303)
@@ -113,12 +125,15 @@ async def edit_product_form(
         raise HTTPException(status_code=404, detail="Product not found")
 
     categories = await service.list_categories(db)
-    return templates.TemplateResponse("product_form.html", {
-        "request": request,
-        "admin": admin,
-        "product": product,
-        "categories": categories,
-    })
+    return templates.TemplateResponse(
+        "product_form.html",
+        {
+            "request": request,
+            "admin": admin,
+            "product": product,
+            "categories": categories,
+        },
+    )
 
 
 @router.post("/products/{product_id}")
@@ -135,7 +150,9 @@ async def update_product(
         price=float(form["price"]) if form.get("price") else None,
         category_id=int(form["category_id"]) if form.get("category_id") else None,
         image_url=form.get("image_url"),
-        stock_quantity=int(form["stock_quantity"]) if form.get("stock_quantity") else None,
+        stock_quantity=int(form["stock_quantity"])
+        if form.get("stock_quantity")
+        else None,
         is_active=form.get("is_active") == "on",
     )
     payload = data.model_dump(exclude_none=True)
@@ -143,7 +160,12 @@ async def update_product(
     if not result:
         raise HTTPException(status_code=404, detail="Product not found")
     await service.log_audit(
-        db, admin.email, "product.update", "product", product_id, payload,
+        db,
+        admin.email,
+        "product.update",
+        "product",
+        product_id,
+        payload,
     )
     return RedirectResponse(url="/admin/products", status_code=303)
 
@@ -158,12 +180,17 @@ async def delete_product(
     if not success:
         raise HTTPException(status_code=404, detail="Product not found")
     await service.log_audit(
-        db, admin.email, "product.deactivate", "product", product_id,
+        db,
+        admin.email,
+        "product.deactivate",
+        "product",
+        product_id,
     )
     return RedirectResponse(url="/admin/products", status_code=303)
 
 
 # ── Inventory ──
+
 
 @router.get("/inventory", response_class=HTMLResponse)
 async def inventory(
@@ -173,11 +200,14 @@ async def inventory(
     db: AsyncSession = Depends(get_db),
 ):
     result = await service.list_products_admin(db, page=page)
-    return templates.TemplateResponse("inventory.html", {
-        "request": request,
-        "admin": admin,
-        **result,
-    })
+    return templates.TemplateResponse(
+        "inventory.html",
+        {
+            "request": request,
+            "admin": admin,
+            **result,
+        },
+    )
 
 
 @router.post("/inventory/{product_id}")
@@ -193,13 +223,18 @@ async def update_inventory(
     if not result:
         raise HTTPException(status_code=404, detail="Product not found")
     await service.log_audit(
-        db, admin.email, "inventory.update", "product", product_id,
+        db,
+        admin.email,
+        "inventory.update",
+        "product",
+        product_id,
         {"new_stock": quantity},
     )
     return RedirectResponse(url="/admin/inventory", status_code=303)
 
 
 # ── Orders ──
+
 
 @router.get("/orders", response_class=HTMLResponse)
 async def list_orders(
@@ -210,12 +245,15 @@ async def list_orders(
     db: AsyncSession = Depends(get_db),
 ):
     result = await service.list_orders_admin(db, status=status, page=page)
-    return templates.TemplateResponse("orders.html", {
-        "request": request,
-        "admin": admin,
-        "status_filter": status or "",
-        **result,
-    })
+    return templates.TemplateResponse(
+        "orders.html",
+        {
+            "request": request,
+            "admin": admin,
+            "status_filter": status or "",
+            **result,
+        },
+    )
 
 
 @router.post("/orders/{order_id}/status")
@@ -234,13 +272,18 @@ async def update_order_status(
     if not result:
         raise HTTPException(status_code=404, detail="Order not found")
     await service.log_audit(
-        db, admin.email, "order.status_change", "order", order_id,
+        db,
+        admin.email,
+        "order.status_change",
+        "order",
+        order_id,
         {"new_status": new_status},
     )
     return RedirectResponse(url="/admin/orders", status_code=303)
 
 
 # ── Coupons ──
+
 
 @router.get("/coupons", response_class=HTMLResponse)
 async def list_coupons(
@@ -250,11 +293,14 @@ async def list_coupons(
     db: AsyncSession = Depends(get_db),
 ):
     result = await service.list_coupons(db, page=page)
-    return templates.TemplateResponse("coupons.html", {
-        "request": request,
-        "admin": admin,
-        **result,
-    })
+    return templates.TemplateResponse(
+        "coupons.html",
+        {
+            "request": request,
+            "admin": admin,
+            **result,
+        },
+    )
 
 
 @router.post("/coupons")
@@ -265,9 +311,7 @@ async def create_coupon(
 ):
     form = await request.form()
     valid_until = form.get("valid_until") or None
-    valid_until_dt = (
-        datetime.fromisoformat(valid_until) if valid_until else None
-    )
+    valid_until_dt = datetime.fromisoformat(valid_until) if valid_until else None
     data = AdminCouponCreate(
         code=form["code"],
         description=form.get("description") or None,
@@ -283,7 +327,11 @@ async def create_coupon(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Could not create coupon: {e}")
     await service.log_audit(
-        db, admin.email, "coupon.create", "coupon", coupon.id,
+        db,
+        admin.email,
+        "coupon.create",
+        "coupon",
+        coupon.id,
         {"code": coupon.code, "discount": float(coupon.discount_value)},
     )
     return RedirectResponse(url="/admin/coupons", status_code=303)
@@ -302,13 +350,18 @@ async def toggle_coupon(
     new_status = not target.is_active
     await service.update_coupon(db, coupon_id, {"is_active": new_status})
     await service.log_audit(
-        db, admin.email, "coupon.toggle", "coupon", coupon_id,
+        db,
+        admin.email,
+        "coupon.toggle",
+        "coupon",
+        coupon_id,
         {"is_active": new_status},
     )
     return RedirectResponse(url="/admin/coupons", status_code=303)
 
 
 # ── Audit Log ──
+
 
 @router.get("/audit", response_class=HTMLResponse)
 async def audit_log(
@@ -322,16 +375,20 @@ async def audit_log(
     result = await service.list_audit_logs(
         db, actor=actor, entity_type=entity_type, page=page
     )
-    return templates.TemplateResponse("audit.html", {
-        "request": request,
-        "admin": admin,
-        "actor_filter": actor or "",
-        "entity_type_filter": entity_type or "",
-        **result,
-    })
+    return templates.TemplateResponse(
+        "audit.html",
+        {
+            "request": request,
+            "admin": admin,
+            "actor_filter": actor or "",
+            "entity_type_filter": entity_type or "",
+            **result,
+        },
+    )
 
 
 # ── Analytics ──
+
 
 @router.get("/analytics", response_class=HTMLResponse)
 async def analytics_page(
@@ -340,11 +397,14 @@ async def analytics_page(
     db: AsyncSession = Depends(get_db),
 ):
     data = await service.get_analytics(db)
-    return templates.TemplateResponse("analytics.html", {
-        "request": request,
-        "admin": admin,
-        **data,
-    })
+    return templates.TemplateResponse(
+        "analytics.html",
+        {
+            "request": request,
+            "admin": admin,
+            **data,
+        },
+    )
 
 
 @router.get("/api/analytics")

@@ -19,7 +19,7 @@ async def add_item(
 ) -> dict:
     # Validate product exists and is active
     result = await db.execute(
-        select(Product).where(Product.id == product_id, Product.is_active == True)
+        select(Product).where(Product.id == product_id, Product.is_active)
     )
     product = result.scalars().first()
     if not product:
@@ -43,17 +43,17 @@ async def add_item(
             return cart
 
     if quantity > product.stock_quantity:
-        raise ValueError(
-            f"Only {product.stock_quantity} of {product.name} in stock"
-        )
+        raise ValueError(f"Only {product.stock_quantity} of {product.name} in stock")
 
     # Add new item
-    cart["items"].append({
-        "product_id": product_id,
-        "name": product.name,
-        "price": float(product.price),
-        "quantity": quantity,
-    })
+    cart["items"].append(
+        {
+            "product_id": product_id,
+            "name": product.name,
+            "price": float(product.price),
+            "quantity": quantity,
+        }
+    )
     await set_cart(r, user_id, cart)
     return cart
 

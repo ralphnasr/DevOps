@@ -57,7 +57,9 @@ async def validate_coupon(
     r: aioredis.Redis = Depends(get_redis),
 ):
     cart = await get_cart(r, user.cognito_sub)
-    cart_total = sum(i["price"] * i["quantity"] for i in cart["items"]) or body.cart_total
+    cart_total = (
+        sum(i["price"] * i["quantity"] for i in cart["items"]) or body.cart_total
+    )
     return await validate_and_calculate(db, body.code, cart_total)
 
 

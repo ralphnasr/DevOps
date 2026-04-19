@@ -1,5 +1,3 @@
-from datetime import datetime, timezone
-
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -50,18 +48,22 @@ class Product(Base):
     sales_count = Column(Integer, server_default="0", nullable=False)
     search_vector = Column(TSVECTOR)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
     category = relationship("Category", back_populates="products")
     order_items = relationship("OrderItem", back_populates="product")
-    reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")
+    reviews = relationship(
+        "Review", back_populates="product", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         CheckConstraint("price >= 0", name="ck_products_price_positive"),
         CheckConstraint("stock_quantity >= 0", name="ck_products_stock_positive"),
         Index("idx_products_search", "search_vector", postgresql_using="gin"),
         Index("idx_products_category", "category_id"),
-        Index("idx_products_active", "is_active", postgresql_where=Column("is_active") == True),
+        Index("idx_products_active", "is_active", postgresql_where=Column("is_active")),
     )
 
 
@@ -76,9 +78,7 @@ class Customer(Base):
 
     orders = relationship("Order", back_populates="customer")
 
-    __table_args__ = (
-        Index("idx_customers_cognito", "cognito_sub"),
-    )
+    __table_args__ = (Index("idx_customers_cognito", "cognito_sub"),)
 
 
 class Order(Base):
@@ -97,10 +97,14 @@ class Order(Base):
     total_amount = Column(Numeric(10, 2), nullable=False)
     invoice_url = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
     customer = relationship("Customer", back_populates="orders")
-    items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+    items = relationship(
+        "OrderItem", back_populates="order", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         CheckConstraint(
@@ -117,7 +121,9 @@ class OrderItem(Base):
     __tablename__ = "order_items"
 
     id = Column(Integer, primary_key=True)
-    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
+    order_id = Column(
+        Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False
+    )
     product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
     quantity = Column(Integer, nullable=False)
     unit_price = Column(Numeric(10, 2), nullable=False)
@@ -152,7 +158,9 @@ class Coupon(Base):
             "discount_type IN ('percent', 'fixed')",
             name="ck_coupons_discount_type_valid",
         ),
-        CheckConstraint("discount_value > 0", name="ck_coupons_discount_value_positive"),
+        CheckConstraint(
+            "discount_value > 0", name="ck_coupons_discount_value_positive"
+        ),
         Index("idx_coupons_code", "code"),
         Index("idx_coupons_active", "is_active"),
     )
@@ -162,14 +170,18 @@ class Review(Base):
     __tablename__ = "reviews"
 
     id = Column(Integer, primary_key=True)
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(
+        Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False
+    )
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True)
     author_name = Column(String(120), nullable=False)
     rating = Column(Integer, nullable=False)
     title = Column(String(255))
     body = Column(Text)
     verified_purchase = Column(Boolean, server_default="false", nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
     product = relationship("Product", back_populates="reviews")
 
@@ -197,9 +209,7 @@ class Promotion(Base):
     sort_order = Column(Integer, server_default="0", nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    __table_args__ = (
-        Index("idx_promotions_slot_active", "slot", "is_active"),
-    )
+    __table_args__ = (Index("idx_promotions_slot_active", "slot", "is_active"),)
 
 
 class Testimonial(Base):
@@ -216,7 +226,9 @@ class Testimonial(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
-        CheckConstraint("rating >= 1 AND rating <= 5", name="ck_testimonials_rating_range"),
+        CheckConstraint(
+            "rating >= 1 AND rating <= 5", name="ck_testimonials_rating_range"
+        ),
     )
 
 
@@ -229,7 +241,9 @@ class AuditLog(Base):
     entity_type = Column(String(50), nullable=False)
     entity_id = Column(String(50))
     details = Column(JSONB, server_default="{}")
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
 
     __table_args__ = (
         Index("idx_audit_logs_actor", "actor"),

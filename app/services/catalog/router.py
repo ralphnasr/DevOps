@@ -4,7 +4,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.database import get_db
 from shared.schemas import (
     CategoryOut,
-    HealthResponse,
     ProductList,
     ProductOut,
     PromotionOut,
@@ -75,12 +74,16 @@ async def price_range(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/best-sellers", response_model=list[ProductOut])
-async def best_sellers(limit: int = Query(default=8, ge=1, le=24), db: AsyncSession = Depends(get_db)):
+async def best_sellers(
+    limit: int = Query(default=8, ge=1, le=24), db: AsyncSession = Depends(get_db)
+):
     return await service.list_best_sellers(db, limit=limit)
 
 
 @router.get("/new-arrivals", response_model=list[ProductOut])
-async def new_arrivals(limit: int = Query(default=8, ge=1, le=24), db: AsyncSession = Depends(get_db)):
+async def new_arrivals(
+    limit: int = Query(default=8, ge=1, le=24), db: AsyncSession = Depends(get_db)
+):
     return await service.list_new_arrivals(db, limit=limit)
 
 

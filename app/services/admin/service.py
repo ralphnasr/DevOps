@@ -9,7 +9,6 @@ from shared.models import (
     AuditLog,
     Category,
     Coupon,
-    Customer,
     Order,
     OrderItem,
     Product,
@@ -32,7 +31,7 @@ async def get_dashboard_stats(db: AsyncSession) -> dict:
     total_products = (
         await db.execute(
             select(func.count(Product.id)).where(
-                Product.is_active == True, Product.stock_quantity > 0
+                Product.is_active, Product.stock_quantity > 0
             )
         )
     ).scalar() or 0
@@ -40,7 +39,7 @@ async def get_dashboard_stats(db: AsyncSession) -> dict:
     low_stock_count = (
         await db.execute(
             select(func.count(Product.id)).where(
-                Product.is_active == True, Product.stock_quantity < 10
+                Product.is_active, Product.stock_quantity < 10
             )
         )
     ).scalar() or 0
@@ -81,7 +80,9 @@ async def list_products_admin(
     total = (await db.execute(count_q)).scalar() or 0
 
     # Fetch
-    query = base.order_by(Product.id.desc()).offset((page - 1) * per_page).limit(per_page)
+    query = (
+        base.order_by(Product.id.desc()).offset((page - 1) * per_page).limit(per_page)
+    )
     result = await db.execute(query)
     products = result.unique().scalars().all()
 
@@ -111,7 +112,9 @@ async def create_product(db: AsyncSession, data: dict) -> Product:
     return product
 
 
-async def update_product(db: AsyncSession, product_id: int, data: dict) -> Product | None:
+async def update_product(
+    db: AsyncSession, product_id: int, data: dict
+) -> Product | None:
     result = await db.execute(select(Product).where(Product.id == product_id))
     product = result.scalars().first()
     if not product:
@@ -137,7 +140,9 @@ async def deactivate_product(db: AsyncSession, product_id: int) -> bool:
     return True
 
 
-async def update_stock(db: AsyncSession, product_id: int, quantity: int) -> Product | None:
+async def update_stock(
+    db: AsyncSession, product_id: int, quantity: int
+) -> Product | None:
     result = await db.execute(select(Product).where(Product.id == product_id))
     product = result.scalars().first()
     if not product:
@@ -167,7 +172,11 @@ async def list_orders_admin(
     )
     total = (await db.execute(count_q)).scalar() or 0
 
-    query = base.order_by(Order.created_at.desc()).offset((page - 1) * per_page).limit(per_page)
+    query = (
+        base.order_by(Order.created_at.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    )
     result = await db.execute(query)
     orders = result.unique().scalars().all()
 
@@ -180,10 +189,14 @@ async def list_orders_admin(
     }
 
 
-async def update_order_status(db: AsyncSession, order_id: int, new_status: str) -> Order | None:
+async def update_order_status(
+    db: AsyncSession, order_id: int, new_status: str
+) -> Order | None:
     valid_statuses = {"confirmed", "processing", "shipped", "delivered", "cancelled"}
     if new_status not in valid_statuses:
-        raise ValueError(f"Invalid status: {new_status}. Must be one of {valid_statuses}")
+        raise ValueError(
+            f"Invalid status: {new_status}. Must be one of {valid_statuses}"
+        )
 
     result = await db.execute(
         select(Order).where(Order.id == order_id).options(joinedload(Order.items))
@@ -205,6 +218,7 @@ async def list_categories(db: AsyncSession) -> list:
 
 # ── Audit Log ──
 
+
 async def log_audit(
     db: AsyncSession,
     actor: str,
@@ -213,13 +227,15 @@ async def log_audit(
     entity_id: str | int | None = None,
     details: dict | None = None,
 ) -> None:
-    db.add(AuditLog(
-        actor=actor,
-        action=action,
-        entity_type=entity_type,
-        entity_id=str(entity_id) if entity_id is not None else None,
-        details=details or {},
-    ))
+    db.add(
+        AuditLog(
+            actor=actor,
+            action=action,
+            entity_type=entity_type,
+            entity_id=str(entity_id) if entity_id is not None else None,
+            details=details or {},
+        )
+    )
     await db.commit()
 
 
@@ -243,7 +259,11 @@ async def list_audit_logs(
     count_q = select(func.count()).select_from(base.subquery())
     total = (await db.execute(count_q)).scalar() or 0
 
-    query = base.order_by(AuditLog.created_at.desc()).offset((page - 1) * per_page).limit(per_page)
+    query = (
+        base.order_by(AuditLog.created_at.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    )
     result = await db.execute(query)
     logs = result.scalars().all()
 
@@ -258,13 +278,17 @@ async def list_audit_logs(
 
 # ── Coupons ──
 
-async def list_coupons(
-    db: AsyncSession, page: int = 1, per_page: int = 50
-) -> dict:
+
+async def list_coupons(db: AsyncSession, page: int = 1, per_page: int = 50) -> dict:
     count_q = select(func.count(Coupon.id))
     total = (await db.execute(count_q)).scalar() or 0
 
-    query = select(Coupon).order_by(Coupon.created_at.desc()).offset((page - 1) * per_page).limit(per_page)
+    query = (
+        select(Coupon)
+        .order_by(Coupon.created_at.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    )
     result = await db.execute(query)
     coupons = result.scalars().all()
 
@@ -310,6 +334,7 @@ async def delete_coupon(db: AsyncSession, coupon_id: int) -> bool:
 
 
 # ── Analytics ──
+
 
 async def get_analytics(db: AsyncSession, days: int = 30) -> dict:
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)

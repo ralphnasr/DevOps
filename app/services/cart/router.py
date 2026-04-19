@@ -29,7 +29,9 @@ async def add_to_cart(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        return await service.add_item(r, db, user.cognito_sub, body.product_id, body.quantity)
+        return await service.add_item(
+            r, db, user.cognito_sub, body.product_id, body.quantity
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -43,7 +45,9 @@ async def update_cart_item(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        return await service.update_item(r, db, user.cognito_sub, product_id, body.quantity)
+        return await service.update_item(
+            r, db, user.cognito_sub, product_id, body.quantity
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

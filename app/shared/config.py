@@ -3,7 +3,9 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Database
-    database_url: str = "postgresql+asyncpg://shopcloud:localdev@localhost:5432/shopcloud"
+    database_url: str = (
+        "postgresql+asyncpg://shopcloud:localdev@localhost:5432/shopcloud"
+    )
 
     # Redis
     redis_url: str = "redis://localhost:6379"
