@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: shopcloud
+      POSTGRES_USER: shopcloud
+      POSTGRES_PASSWORD: localdev
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shopcloud"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: ./app
+      target: combined
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://shopcloud:localdev@postgres:5432/shopcloud
+      REDIS_URL: redis://redis:6379
+      ENVIRONMENT: dev
+      COGNITO_USER_POOL_ID: ""
+      COGNITO_APP_CLIENT_ID: ""
+      SQS_QUEUE_URL: ""
+      S3_INVOICE_BUCKET: ""
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  admin:
+    build:
+      context: ./app
+      target: admin
+    ports:
+      - "8001:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://shopcloud:localdev@postgres:5432/shopcloud
+      REDIS_URL: redis://redis:6379
+      ENVIRONMENT: dev
+      COGNITO_ADMIN_POOL_ID: ""
+      COGNITO_ADMIN_CLIENT_ID: ""
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  migrate:
+    build:
+      context: ./app
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql+asyncpg://shopcloud:localdev@postgres:5432/shopcloud
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - migration
+
+volumes:
+  pgdata:
