@@ -1,0 +1,238 @@
+name: Production Pipeline
+
+on:
+  push:
+    branches: [main]
+
+env:
+  AWS_REGION: us-east-1
+  ENVIRONMENT: prod
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install ruff
+          pip install -r app/requirements.txt
+
+      - name: Lint with ruff
+        run: ruff check app/
+
+      - name: Format check
+        run: ruff format --check app/
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: shopcloud_test
+          POSTGRES_USER: shopcloud
+          POSTGRES_PASSWORD: testpass
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U shopcloud"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r app/requirements.txt
+
+      - name: Run tests
+        working-directory: app
+        env:
+          DATABASE_URL: postgresql+asyncpg://shopcloud:testpass@localhost:5432/shopcloud_test
+          REDIS_URL: redis://localhost:6379
+        run: pytest tests/ -v --tb=short
+
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan -out=tfplan
+
+      - name: Upload plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: terraform/tfplan
+
+  build-and-deploy:
+    name: Build & Deploy to Prod
+    runs-on: ubuntu-latest
+    needs: [test, terraform-plan]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push images
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # migrate is included so `aws ecs run-task` below can pull it from ECR
+          for service in catalog cart checkout admin migrate; do
+            docker build -t $ECR_REGISTRY/shopcloud/$service:$IMAGE_TAG \
+              -t $ECR_REGISTRY/shopcloud/$service:latest \
+              --target $service \
+              -f app/Dockerfile app/
+            docker push $ECR_REGISTRY/shopcloud/$service:$IMAGE_TAG
+            docker push $ECR_REGISTRY/shopcloud/$service:latest
+          done
+
+      - name: Run database migrations
+        run: |
+          set -euo pipefail
+          NETWORK_CONFIG=$(aws ecs describe-services \
+            --cluster shopcloud-prod \
+            --services catalog \
+            --query 'services[0].networkConfiguration' \
+            --output json)
+          TASK_ARN=$(aws ecs run-task \
+            --cluster shopcloud-prod \
+            --task-definition shopcloud-prod-migrate \
+            --launch-type FARGATE \
+            --network-configuration "$NETWORK_CONFIG" \
+            --count 1 \
+            --query 'tasks[0].taskArn' --output text --no-cli-pager)
+          echo "Migration task: $TASK_ARN"
+          aws ecs wait tasks-stopped --cluster shopcloud-prod --tasks "$TASK_ARN"
+          EXIT_CODE=$(aws ecs describe-tasks --cluster shopcloud-prod --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[0].exitCode' --output text)
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "Migration failed with exit code $EXIT_CODE"
+            exit 1
+          fi
+          echo "Migration OK"
+
+      - name: Deploy to ECS
+        run: |
+          for service in catalog cart checkout admin; do
+            aws ecs update-service \
+              --cluster shopcloud-prod \
+              --service $service \
+              --force-new-deployment \
+              --no-cli-pager
+          done
+
+      - name: Deploy frontend
+        run: bash scripts/deploy-frontend.sh
+
+      - name: Wait for services stable
+        run: |
+          aws ecs wait services-stable \
+            --cluster shopcloud-prod \
+            --services catalog cart checkout admin \
+            --no-cli-pager
+
+      - name: Smoke test (post-deploy)
+        # Per docs/phase2-master-plan.md §9.3 step 17
+        run: |
+          set -euo pipefail
+          ALB=$(aws elbv2 describe-load-balancers \
+            --names shopcloud-prod-public \
+            --query 'LoadBalancers[0].DNSName' \
+            --output text)
+          if [[ -z "$ALB" || "$ALB" == "None" ]]; then
+            echo "ERROR: could not resolve public ALB DNS"
+            exit 1
+          fi
+          echo "Probing services via ${ALB}"
+          for path in "/api/products" "/api/cart" "/api/orders" "/admin"; do
+            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 "http://${ALB}${path}" || echo "000")
+            echo "  ${path} -> ${code}"
+            # 200/302/401 are all "service responding"; 5xx or 000 is a fail
+            if [[ "$code" =~ ^5 ]] || [[ "$code" == "000" ]]; then
+              echo "FAIL: ${path} returned ${code}"
+              exit 1
+            fi
+          done
+          echo "Smoke test passed."
+
+      - name: Auto-rollback on failure
+        if: failure()
+        # Per docs/phase2-master-plan.md §9.4 — auto-revert to previous task def revision
+        run: |
+          set -euo pipefail
+          for svc in catalog cart checkout admin; do
+            family="shopcloud-prod-${svc}"
+            prev=$(aws ecs list-task-definitions \
+              --family-prefix "$family" \
+              --status ACTIVE \
+              --sort DESC \
+              --query 'taskDefinitionArns[1]' \
+              --output text)
+            if [[ -n "$prev" && "$prev" != "None" ]]; then
+              echo "Rolling ${svc} back to ${prev}"
+              aws ecs update-service \
+                --cluster shopcloud-prod \
+                --service "$svc" \
+                --task-definition "$prev" \
+                --force-new-deployment \
+                --no-cli-pager
+            fi
+          done
+          aws ecs wait services-stable \
+            --cluster shopcloud-prod \
+            --services catalog cart checkout admin \
+            --no-cli-pager

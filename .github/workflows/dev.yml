@@ -1,0 +1,171 @@
+name: Dev Pipeline
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev]
+
+env:
+  AWS_REGION: us-east-1
+  ENVIRONMENT: dev
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install ruff
+          pip install -r app/requirements.txt
+
+      - name: Lint with ruff
+        run: ruff check app/
+
+      - name: Format check
+        run: ruff format --check app/
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: shopcloud_test
+          POSTGRES_USER: shopcloud
+          POSTGRES_PASSWORD: testpass
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U shopcloud"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r app/requirements.txt
+
+      - name: Run tests
+        working-directory: app
+        env:
+          DATABASE_URL: postgresql+asyncpg://shopcloud:testpass@localhost:5432/shopcloud_test
+          REDIS_URL: redis://localhost:6379
+        run: pytest tests/ -v --tb=short
+
+  terraform-validate:
+    name: Terraform Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        working-directory: terraform
+        run: terraform validate
+
+      - name: Terraform Format Check
+        working-directory: terraform
+        run: terraform fmt -check -recursive
+
+  build-and-deploy:
+    name: Build & Deploy to Dev
+    runs-on: ubuntu-latest
+    needs: [test, terraform-validate]
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push images
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          for service in combined admin migrate; do
+            docker build -t $ECR_REGISTRY/shopcloud/$service:$IMAGE_TAG \
+              -t $ECR_REGISTRY/shopcloud/$service:latest \
+              --target $service \
+              -f app/Dockerfile app/
+            docker push $ECR_REGISTRY/shopcloud/$service:$IMAGE_TAG
+            docker push $ECR_REGISTRY/shopcloud/$service:latest
+          done
+
+      - name: Run database migrations
+        run: |
+          set -euo pipefail
+          NETWORK_CONFIG=$(aws ecs describe-services \
+            --cluster shopcloud-dev \
+            --services combined \
+            --query 'services[0].networkConfiguration' \
+            --output json)
+          TASK_ARN=$(aws ecs run-task \
+            --cluster shopcloud-dev \
+            --task-definition shopcloud-dev-migrate \
+            --launch-type FARGATE \
+            --network-configuration "$NETWORK_CONFIG" \
+            --count 1 \
+            --query 'tasks[0].taskArn' --output text --no-cli-pager)
+          aws ecs wait tasks-stopped --cluster shopcloud-dev --tasks "$TASK_ARN"
+          EXIT_CODE=$(aws ecs describe-tasks --cluster shopcloud-dev --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[0].exitCode' --output text)
+          [ "$EXIT_CODE" = "0" ] || { echo "Migration failed ($EXIT_CODE)"; exit 1; }
+
+      - name: Deploy to ECS
+        run: |
+          for service in combined admin; do
+            aws ecs update-service \
+              --cluster shopcloud-dev \
+              --service $service \
+              --force-new-deployment \
+              --no-cli-pager
+          done
+
+      - name: Deploy frontend
+        run: |
+          S3_BUCKET=$(cd terraform && terraform output -raw s3_static_bucket 2>/dev/null || echo "")
+          if [ -n "$S3_BUCKET" ]; then
+            aws s3 sync frontend/ s3://$S3_BUCKET/ --delete
+          fi
