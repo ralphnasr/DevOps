@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% set active_page = "dashboard" %}
+
+{% block title %}Dashboard - ShopCloud Admin{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>Dashboard</h1>
+</div>
+
+<div class="stats">
+    <div class="stat-card">
+        <div class="label">Total Orders</div>
+        <div class="value">{{ total_orders }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Total Revenue</div>
+        <div class="value">${{ "%.2f"|format(total_revenue) }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Active Products</div>
+        <div class="value">{{ total_products }}</div>
+    </div>
+    <div class="stat-card {% if low_stock_count > 0 %}warning{% endif %}">
+        <div class="label">Low Stock Alerts</div>
+        <div class="value">{{ low_stock_count }}</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2 style="margin-bottom: 16px;">Recent Orders</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Order ID</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in recent_orders %}
+            <tr>
+                <td>#{{ order.id }}</td>
+                <td>{{ order.items|length }} item(s)</td>
+                <td>${{ "%.2f"|format(order.total_amount) }}</td>
+                <td><span class="badge badge-{{ order.status }}">{{ order.status }}</span></td>
+                <td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') if order.created_at else '-' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" style="text-align:center; color:#888;">No orders yet</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

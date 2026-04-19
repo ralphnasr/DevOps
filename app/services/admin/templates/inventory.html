@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% set active_page = "inventory" %}
+
+{% block title %}Inventory - ShopCloud Admin{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>Inventory Management</h1>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Product</th>
+            <th>Current Stock</th>
+            <th>Status</th>
+            <th>Update Stock</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for product in items %}
+        <tr>
+            <td>{{ product.id }}</td>
+            <td>{{ product.name }}</td>
+            <td class="{% if product.stock_quantity < 10 %}stock-low{% else %}stock-ok{% endif %}">
+                {{ product.stock_quantity }}
+            </td>
+            <td>
+                {% if product.stock_quantity == 0 %}
+                <span class="badge badge-cancelled">Out of Stock</span>
+                {% elif product.stock_quantity < 10 %}
+                <span class="badge badge-pending">Low Stock</span>
+                {% else %}
+                <span class="badge badge-confirmed">In Stock</span>
+                {% endif %}
+            </td>
+            <td>
+                <form method="post" action="/admin/inventory/{{ product.id }}" class="form-inline">
+                    <input type="number" name="stock_quantity" min="0"
+                           value="{{ product.stock_quantity }}"
+                           style="width: 80px; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <button type="submit" class="btn btn-primary btn-sm">Update</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="text-align:center; color:#888;">No products found</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if pages > 1 %}
+<div class="pagination">
+    {% for p in range(1, pages + 1) %}
+    <a href="/admin/inventory?page={{ p }}"
+       class="{% if p == page %}active{% endif %}">{{ p }}</a>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

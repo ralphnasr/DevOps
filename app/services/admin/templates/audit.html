@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% set active_page = "audit" %}
+
+{% block title %}Audit Log - ShopCloud Admin{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>Audit Log</h1>
+</div>
+
+<form class="search-bar" method="get" action="/admin/audit">
+    <input type="text" name="actor" value="{{ actor_filter }}" placeholder="Filter by admin email">
+    <select name="entity_type" style="width:200px; padding:8px 12px; border:1px solid #ddd; border-radius:4px;">
+        <option value="">All entity types</option>
+        <option value="product" {% if entity_type_filter == 'product' %}selected{% endif %}>Product</option>
+        <option value="order" {% if entity_type_filter == 'order' %}selected{% endif %}>Order</option>
+        <option value="coupon" {% if entity_type_filter == 'coupon' %}selected{% endif %}>Coupon</option>
+    </select>
+    <button type="submit" class="btn btn-primary">Filter</button>
+    {% if actor_filter or entity_type_filter %}
+    <a href="/admin/audit" class="btn">Clear</a>
+    {% endif %}
+</form>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>When</th>
+                <th>Actor</th>
+                <th>Action</th>
+                <th>Entity</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in items %}
+            <tr class="audit-row">
+                <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') if log.created_at else '-' }}</td>
+                <td>{{ log.actor }}</td>
+                <td><span class="audit-action">{{ log.action }}</span></td>
+                <td>{{ log.entity_type }}{% if log.entity_id %} #{{ log.entity_id }}{% endif %}</td>
+                <td class="audit-details" title="{{ log.details }}">{{ log.details }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" style="text-align:center; color:#888;">No audit entries yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p style="margin-top:12px; color:#888; font-size:13px;">Showing {{ items|length }} of {{ total }} entries</p>
+</div>
+{% endblock %}
