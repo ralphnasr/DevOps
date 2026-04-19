@@ -1,0 +1,464 @@
+================================================================================
+  SHOPCLOUD — PRESENTATION GUIDE (5 MINUTES)
+  Architecture Diagram + Service Mapping + Cost
+================================================================================
+
+
+================================================================================
+  PART 1: COMPONENT-BY-COMPONENT EXPLANATION & FULL WORKFLOW
+================================================================================
+
+Every Component and Its Role
+----------------------------
+
+EDGE LAYER (the front door):
+
+  Component          | What it does
+  -------------------|------------------------------------------------------------
+  Route 53           | DNS service. When a customer types shopcloud.com, Route 53
+                     | translates that into an IP address and sends them to
+                     | CloudFront. Think of it as the phone book of the internet.
+  -------------------|------------------------------------------------------------
+  CloudFront         | CDN (Content Delivery Network). Caches copies of your
+                     | website's images and static files on servers around the
+                     | world so customers get fast load times no matter where
+                     | they are.
+  -------------------|------------------------------------------------------------
+  WAF                | Web Application Firewall. Sits in front of your app and
+                     | blocks attacks like SQL injection, bots, and suspicious
+                     | traffic. It's the bouncer at the door.
+  -------------------|------------------------------------------------------------
+  Shield Standard    | DDoS protection. If someone tries to flood your site with
+                     | fake traffic to take it down, Shield absorbs the attack.
+                     | Free and always on.
+  -------------------|------------------------------------------------------------
+  S3 Static Assets   | Stores product images, CSS, JavaScript files. CloudFront
+                     | pulls from here. OAC (Origin Access Control) means nobody
+                     | can access S3 directly — only CloudFront can.
+
+
+AUTHENTICATION (outside the VPC):
+
+  Component          | What it does
+  -------------------|------------------------------------------------------------
+  Amazon Cognito     | Managed login system. Two separate user pools: one for
+                     | customers (sign up, log in, reset password) and one for
+                     | admin staff. Issues JWT tokens that prove "this person is
+                     | authenticated." The ALBs check these tokens before letting
+                     | requests through. Free for up to 50,000 users/month.
+
+
+PRODUCTION VPC — PUBLIC SUBNETS (the lobby):
+
+  Component          | What it does
+  -------------------|------------------------------------------------------------
+  Internet Gateway   | The door between the internet and your VPC. All incoming
+                     | traffic enters through here.
+  -------------------|------------------------------------------------------------
+  Public ALB         | Application Load Balancer. Receives all customer traffic
+                     | and routes it to the right service based on the URL path:
+                     | /api/products/* -> Catalog, /api/cart/* -> Cart,
+                     | /api/checkout/* -> Checkout.
+  -------------------|------------------------------------------------------------
+  Bastion Host       | A tiny EC2 server (t3.micro) that admin staff SSH into to
+                     | access the internal admin panel. It's the only way in.
+                     | Only whitelisted IPs can connect.
+  -------------------|------------------------------------------------------------
+  NAT Gateway        | Lets private services (Fargate, Lambda) reach the internet
+                     | (to pull Docker images, call AWS APIs) without being
+                     | exposed to incoming internet traffic. One-way door.
+
+
+PRODUCTION VPC — PRIVATE APP SUBNETS (the engine room):
+
+  Component              | What it does
+  -----------------------|----------------------------------------------------
+  Product Catalog        | Container running the catalog API. Handles browsing
+  (Fargate)              | products, searching, viewing categories. Reads from
+                         | the database. Highest traffic service.
+  -----------------------|----------------------------------------------------
+  Shopping Cart          | Container running the cart API. Stores cart items in
+  (Fargate)              | Redis (fast, temporary storage). Sessions expire
+                         | after 24h for abandoned carts.
+  -----------------------|----------------------------------------------------
+  Checkout & Payment     | Container running the checkout API. The most critical
+  (Fargate)              | service — reads cart from Redis, checks stock in the
+                         | database, records the order, then sends a message to
+                         | SQS to trigger invoice generation.
+  -----------------------|----------------------------------------------------
+  Internal ALB           | A load balancer with NO public IP. Only accessible
+                         | from inside the VPC. Routes traffic to Admin Panel.
+  -----------------------|----------------------------------------------------
+  Admin Panel (Fargate)  | Container running the admin web interface. Staff
+                         | manage inventory, view orders. Isolated behind 3
+                         | security layers (Internal ALB + Bastion + Cognito
+                         | Admin Pool).
+
+
+PRODUCTION VPC — PRIVATE DATA SUBNETS (the vault):
+
+  Component              | What it does
+  -----------------------|----------------------------------------------------
+  RDS PostgreSQL Primary | The main database in AZ-A. Stores everything:
+                         | products, orders, customers, inventory. All services
+                         | write and read here.
+  -----------------------|----------------------------------------------------
+  RDS PostgreSQL Standby | An exact copy in AZ-B, kept in sync in real-time.
+                         | If the primary dies, AWS automatically switches to
+                         | this one in 60-120 seconds. Zero data loss.
+  -----------------------|----------------------------------------------------
+  ElastiCache Redis      | In-memory cache. Stores shopping cart sessions.
+                         | Sub-millisecond reads (0.1ms vs 5-10ms for a DB).
+
+
+ASYNC INVOICE PIPELINE (serverless):
+
+  Component          | What it does
+  -------------------|------------------------------------------------------------
+  SQS Queue          | Message queue. When checkout confirms an order, it drops
+                     | a message here. The message waits safely until Lambda
+                     | picks it up.
+  -------------------|------------------------------------------------------------
+  SQS DLQ            | Dead Letter Queue. If a message fails 4 times, it goes
+                     | here instead of being lost. An alarm alerts the team so
+                     | no invoice is silently lost.
+  -------------------|------------------------------------------------------------
+  Lambda             | Serverless function. Triggered by SQS. Reads order details
+                     | from RDS, generates a PDF invoice, saves it to S3, and
+                     | emails the customer via SES. Runs only when needed —
+                     | costs $0 at startup.
+  -------------------|------------------------------------------------------------
+  S3 Invoice Storage | Stores the generated PDF invoices. Customers can
+                     | re-download them later (for returns, warranties,
+                     | expenses).
+  -------------------|------------------------------------------------------------
+  SES                | Simple Email Service. Sends the invoice email to the
+                     | customer with a link to the PDF.
+
+
+DEVELOPMENT VPC (the sandbox):
+
+  Component              | What it does
+  -----------------------|----------------------------------------------------
+  Dev ALB, Dev Bastion   | Same as production but single AZ, smaller scale.
+  -----------------------|----------------------------------------------------
+  Dev App (Fargate)      | Runs the customer app at 0.25 vCPU (half of prod).
+  -----------------------|----------------------------------------------------
+  Dev Admin (Fargate)    | Runs the admin panel for testing.
+  -----------------------|----------------------------------------------------
+  Dev RDS                | Single database, no standby, no cross-region replica.
+  -----------------------|----------------------------------------------------
+  Dev Redis              | Same as production but for dev testing.
+
+
+DISASTER RECOVERY — eu-west-1 (Ireland):
+
+  Component          | What it does
+  -------------------|------------------------------------------------------------
+  RDS Read Replica   | An asynchronous copy of the production database in Ireland.
+                     | If the entire us-east-1 region goes down, this becomes the
+                     | new primary. Also serves fast reads for EU customers.
+
+
+================================================================================
+  THE COMPLETE WORKFLOW (Customer Journey)
+================================================================================
+
+Step 1 — Customer opens shopcloud.com
+  Customer -> Route 53 (DNS lookup) -> CloudFront (CDN)
+
+Step 2 — Static content served from edge
+  CloudFront -> S3 Static Assets (images, CSS, JS from nearest edge location)
+
+Step 3 — Dynamic API requests enter the VPC
+  CloudFront -> WAF (filters attacks) -> Internet Gateway -> Public ALB
+
+Step 4 — ALB routes to the right service
+  Public ALB checks the JWT token with Cognito, then routes:
+    /api/products/*  -> Product Catalog (Fargate)
+    /api/cart/*      -> Shopping Cart (Fargate)
+    /api/checkout/*  -> Checkout (Fargate)
+
+Step 5 — Customer browses products
+  Catalog -> RDS Primary (reads product data, categories, search results)
+
+Step 6 — Customer adds items to cart
+  Cart -> ElastiCache Redis (stores cart session, sub-ms speed)
+
+Step 7 — Customer checks out
+  Checkout -> reads cart from Redis -> validates stock in RDS -> records order
+  in RDS -> publishes order event to SQS -> returns "Order Confirmed" (< 200ms)
+
+Step 8 — Invoice generated asynchronously
+  SQS triggers Lambda -> Lambda reads order from RDS -> generates PDF ->
+  saves to S3 -> sends email via SES
+  If Lambda fails -> retries 4 times -> if still fails -> goes to DLQ (never lost)
+
+Step 9 — Admin manages inventory
+  Admin staff -> SSH into Bastion -> SSH tunnel to Internal ALB ->
+  Admin Panel (Fargate) -> reads/writes RDS
+
+Step 10 — High availability & DR
+  RDS Primary (AZ-A) <--sync--> RDS Standby (AZ-B) (automatic failover)
+  RDS Primary <--async--> RDS Replica (eu-west-1) (cross-region DR)
+
+
+================================================================================
+  PART 2: SERVICE MAPPING TABLE — SIMPLE EXPLANATION
+================================================================================
+
+3.1 Product Catalog
+-------------------
+"This is the storefront — the first thing customers see. It shows products,
+categories, and search results. We run it on Fargate (a container that scales
+automatically), behind the Public ALB that routes traffic. Product images are
+stored in S3 and served through CloudFront for speed. Product data lives in
+PostgreSQL. We rejected EC2 (too slow to scale), EKS (too expensive — $73/month
+just for the control plane), and Lambda (cold starts make pages slow)."
+
+3.2 Shopping Cart
+-----------------
+"This keeps track of what's in your cart. The cart data is stored in Redis
+(ElastiCache), which is an in-memory database — reads take 0.1 milliseconds
+instead of 5-10ms in a regular database. If you abandon your cart, it
+automatically expires after 24 hours. We rejected storing sessions in cookies
+(insecure, limited size), in the main database (too slow, unnecessary load),
+and in a container-local Redis (if the container restarts, all carts are lost)."
+
+3.3 Checkout & Payment
+----------------------
+"The most critical path. When you click 'buy,' it reads your cart from Redis,
+checks if items are in stock in the database, records the order, then drops a
+message in SQS for the invoice — all in under 200ms. You never wait for the
+invoice. We rejected synchronous invoice generation (2-5 seconds added to
+checkout) and SNS (if Lambda is down, the message is lost — SQS stores it
+safely)."
+
+3.4 Authentication
+------------------
+"Instead of building our own login system (risky and expensive), we use
+Cognito — a managed service that handles registration, login, password reset,
+email verification, and brute-force protection. Two separate user pools: one
+for customers, one for admins. The ALB checks JWT tokens before any request
+reaches our services. Free for 50,000 users/month. We rejected building custom
+auth (security risk, $18/month extra), Auth0 (fewer free users, no native ALB
+integration), and embedded auth per service (duplicated code, inconsistent
+security)."
+
+3.5 Admin Panel
+---------------
+"The admin panel must NEVER be reachable from the public internet. We achieve
+this with three layers: (1) the Internal ALB has no public IP — it literally
+cannot be reached from the internet, (2) you can only access it by SSHing into
+the Bastion host (whitelisted IPs only) and creating a tunnel, (3) even then,
+you must log in via a separate Cognito Admin pool. We rejected a public ALB
+with IP whitelist (violates the requirement), VPN ($73/month for 1-2 users),
+and direct Fargate access (IPs change on every deployment)."
+
+3.6 Database
+------------
+"RDS PostgreSQL Multi-AZ: the primary database runs in AZ-A with a synchronous
+standby in AZ-B. If AZ-A goes down, failover happens in 60-120 seconds with
+zero data loss. A cross-region replica in Ireland provides disaster recovery
+AND fast reads for European customers. We chose PostgreSQL over MySQL for JSONB
+(flexible product attributes), full-text search (no need for ElasticSearch),
+and Aurora compatibility for future upgrades. We rejected Aurora (30% more
+expensive), self-managed on EC2 (no automatic failover), and DynamoDB (not
+relational — the project requires relational)."
+
+3.7 Invoice Generation
+----------------------
+"When an order is confirmed, a message goes to SQS. Lambda picks it up,
+generates a PDF, stores it in S3 (for re-download), and emails it via SES. If
+Lambda fails, SQS retries 4 times. If it still fails, the message goes to the
+Dead Letter Queue — no invoice is ever silently lost. The entire pipeline costs
+$0 at startup volume. We rejected a background Fargate task ($10-15/month
+running 24/7 with >99% idle time), an in-process async thread (if the container
+restarts, the invoice is lost), and Step Functions (overkill for a simple
+linear pipeline)."
+
+3.8 Dev & Production Environments
+----------------------------------
+"Two completely separate VPCs with no connection between them. A bug or
+misconfiguration in dev has zero impact on production — there's literally no
+network path between them. Dev mirrors production's 3-tier architecture but at
+reduced scale: single AZ, smaller containers, no Multi-AZ database, no
+cross-region replica. Costs $117/month vs production's $225/month. We rejected
+separate AWS accounts (project says 'a clean AWS account' singular), same VPC
+with subnet isolation (violates 'completely isolated at the network level'),
+and Kubernetes namespaces (not true network isolation)."
+
+
+================================================================================
+  PART 3: 5-MINUTE PRESENTATION SCRIPT
+================================================================================
+
+
+[SLIDE: Architecture Diagram — Part 1] (0:00 - 2:30)
+-----------------------------------------------------
+
+OPENING (0:00 - 0:20)
+
+"Imagine you're a customer shopping online. You open shopcloud.com. What
+happens next? Let me walk you through every step of that journey using our
+architecture diagram."
+
+
+THE FRONT DOOR (0:20 - 0:50)
+
+"It starts at the top — the Edge Layer. Your browser asks Route 53, 'Where
+is shopcloud.com?' Route 53 answers with CloudFront's address. CloudFront is
+our CDN — it has copies of images and static files cached on servers around
+the world. So if you're in Paris, you get product images from a server in
+Paris, not Virginia. Behind CloudFront sits WAF and Shield — our security
+layer. WAF blocks SQL injection, bot attacks, and malicious requests. Shield
+protects against DDoS attacks. Think of WAF as the bouncer checking IDs, and
+Shield as the wall that absorbs a crowd trying to rush the door."
+
+
+INTO THE VPC (0:50 - 1:20)
+
+"Dynamic requests — like 'show me product details' or 'add to cart' — pass
+through the Internet Gateway into our Production VPC. The VPC is organized
+into three tiers, like floors in a building. The public floor has the Public
+ALB — our load balancer that reads the URL and sends you to the right service.
+/products goes to the Catalog, /cart goes to the Cart, /checkout goes to
+Checkout. Before any request reaches a service, the ALB checks your JWT token
+with Cognito — our managed authentication service. Two separate user pools:
+one for customers, one for admins. No homegrown login code, no security risks."
+
+
+THE SERVICES (1:20 - 1:50)
+
+"The private app floor is where the real work happens. Three customer-facing
+services run on ECS Fargate — serverless containers that scale automatically.
+The Catalog service reads product data from PostgreSQL. The Cart service stores
+your items in Redis — that's ElastiCache — with sub-millisecond speed. And
+when you click 'buy,' the Checkout service reads your cart from Redis, validates
+stock in the database, records your order, and drops a message into SQS — all
+in under 200 milliseconds. You see 'Order Confirmed' instantly. You never wait
+for the invoice."
+
+
+THE INVOICE & DATA LAYER (1:50 - 2:15)
+
+"That SQS message triggers a Lambda function — a serverless function that runs
+only when needed. Lambda generates a PDF invoice, stores it in S3 so you can
+re-download it later, and emails it to you via SES. If Lambda fails? SQS
+retries. If it keeps failing? The message goes to a Dead Letter Queue. No
+invoice is ever silently lost.
+
+Below everything sits the data floor — completely isolated from the internet.
+PostgreSQL runs Multi-AZ: a primary in AZ-A with a synchronized standby in
+AZ-B. If AZ-A goes down, failover happens in 60 seconds with zero data loss.
+A cross-region replica in Ireland provides disaster recovery and fast reads
+for European customers."
+
+
+ADMIN & DEV (2:15 - 2:30)
+
+"The admin panel is network-isolated — the Internal ALB has no public IP.
+Staff SSH into a Bastion host and tunnel through to reach it. Three layers of
+security: network, access, and authentication. And our Development VPC is a
+complete mirror of production at reduced scale — separate VPC, no connection
+between them. A dev failure can never touch production."
+
+
+[SLIDE: Service Mapping Table] (2:30 - 5:00)
+---------------------------------------------
+
+TRANSITION (2:30 - 2:40)
+
+"Now that you've seen how traffic flows, let me show you why we chose each
+component. For every service, we mapped the project requirement to specific
+AWS infrastructure — and documented what we rejected and why."
+
+
+CATALOG & CART (2:40 - 3:10)
+
+"The Product Catalog is our highest-traffic service — every page view starts
+here. We run it on Fargate because it scales in seconds, unlike EC2 which
+takes 2-5 minutes. We rejected EKS because the Kubernetes control plane alone
+costs $73 a month — before any compute. For a startup, that's money for zero
+benefit. Product images are served through CloudFront and S3, not from the
+container — because why have your server send a 2MB image when a CDN server
+50 miles from the customer can do it faster?
+
+The Shopping Cart uses Redis because cart lookups need to be instant — 0.1
+milliseconds versus 5-10 milliseconds in a database. Redis also has built-in
+TTL, so abandoned carts clean themselves up after 24 hours. We rejected
+storing sessions in cookies — they're insecure, limited to 4KB, and can be
+tampered with."
+
+
+CHECKOUT & INVOICING (3:10 - 3:40)
+
+"Checkout is the most critical path. Every millisecond matters. The flow is:
+read cart from Redis, validate stock in PostgreSQL, record the order, publish
+to SQS, return 'Order Confirmed.' Under 200 milliseconds. The customer never
+waits for the invoice — that happens asynchronously.
+
+Invoice Generation is a perfect fit for Lambda. It runs maybe 10 times a day.
+Running a Fargate container 24/7 for that would cost $10-15 a month with 99%
+idle time. Lambda costs literally zero under free tier. SQS guarantees no
+message is lost — unlike SNS, which would drop the message if Lambda is
+temporarily unavailable."
+
+
+AUTH & ADMIN (3:40 - 4:15)
+
+"For Authentication, we use Cognito instead of building our own login system.
+Custom auth is the number one source of web application vulnerabilities.
+Cognito gives us registration, login, password reset, email verification, and
+brute-force protection — all managed, all free up to 50,000 users. Two
+separate pools keep customer and admin credentials completely isolated.
+
+The Admin Panel has our strongest security requirement: 'must never be
+reachable from the public internet.' We achieve this with three independent
+layers. First, the Internal ALB has no public IP — it physically cannot be
+reached from outside the VPC. Second, the only way in is through an SSH tunnel
+via the Bastion host, which only accepts connections from whitelisted IPs.
+Third, even after all that, you still need to log in with separate admin
+credentials. We rejected VPN at $73 a month — for 1-2 staff members, that's
+overkill."
+
+
+DATABASE & ENVIRONMENTS (4:15 - 4:50)
+
+"The Database is RDS PostgreSQL Multi-AZ. We chose PostgreSQL over MySQL for
+three reasons specific to e-commerce: JSONB handles variable product attributes
+without extra tables, built-in full-text search means no ElasticSearch cluster,
+and it's wire-compatible with Aurora for a future upgrade path. The standby in
+AZ-B provides automatic failover with zero data loss. The replica in Ireland
+provides both disaster recovery and low-latency reads for European customers.
+
+For Environment Isolation, we use completely separate VPCs with no peering.
+There is literally no network path between dev and production. Same three-tier
+architecture, but dev runs at half the resources — single AZ, smaller
+containers, no Multi-AZ database. Dev costs $117 a month versus production's
+$225."
+
+
+CLOSING (4:50 - 5:00)
+
+"To summarize: every component in this architecture was chosen because it
+meets a specific requirement at the lowest possible cost. We're not just
+picking services from a catalog — we're making deliberate trade-offs. Fargate
+over Kubernetes saves $146 a month. Cognito over custom auth saves $18 a
+month and eliminates security risk. Lambda over a background container costs
+zero instead of $15. The total: $342 a month for a production-ready, multi-AZ,
+disaster-recoverable e-commerce platform. Thank you."
+
+
+================================================================================
+  PRESENTATION TIPS
+================================================================================
+
+- Point at the diagram as you talk — trace the arrows with your finger/pointer
+- When you say "three tiers," gesture top-middle-bottom on the diagram
+- For the service mapping section, have the table visible — point to each row
+  as you explain it
+- Keep your tone conversational, like you're explaining to a friend, not
+  reading a script
+- The "$X per month" numbers are your strongest points — they show you actually
+  calculated the cost of every alternative
