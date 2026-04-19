@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">
+  <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#43e97b"/><stop offset="100%" stop-color="#38f9d7"/></linearGradient></defs>
+  <rect width="400" height="400" fill="url(#g)"/>
+  <circle cx="200" cy="180" r="70" fill="rgba(255,255,255,0.18)"/>
+  <circle cx="200" cy="180" r="44" fill="rgba(255,255,255,0.28)"/>
+  <text x="200" y="310" font-family="Inter,Helvetica,Arial,sans-serif" font-size="26" fill="rgba(255,255,255,0.95)" text-anchor="middle" font-weight="700">dumbbells</text>
+  <text x="200" y="340" font-family="Inter,Helvetica,Arial,sans-serif" font-size="14" fill="rgba(255,255,255,0.75)" text-anchor="middle">view 4</text>
+</svg>
