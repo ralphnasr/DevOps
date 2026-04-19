@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <title>My Account - ShopCloud</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="promo-bar" id="promo-bar">
+        <strong>Free Shipping</strong> on all orders over $50 &mdash; Limited time offer! <a href="index.html">Shop Now</a>
+        <button class="promo-close" onclick="document.getElementById('promo-bar').style.display='none';localStorage.setItem('promo_dismissed','1')">&times;</button>
+    </div>
+    <header class="navbar">
+        <a href="index.html" class="logo">Shop<span>Cloud</span></a>
+        <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu"><span></span><span></span><span></span></button>
+        <nav class="nav-links">
+            <a href="index.html" data-nav="shop">Shop All</a>
+            <a href="index.html?filter=new" data-nav="new">New Arrivals</a>
+            <a href="index.html?filter=best-sellers" data-nav="best">Best Sellers</a>
+            <a href="contact.html" data-nav="about">About</a>
+        </nav>
+        <form class="nav-search" onsubmit="submitNavSearch(event)">
+            <span class="search-glyph"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+            <input type="text" id="nav-search-input" placeholder="Search products..." autocomplete="off">
+        </form>
+        <div class="nav-icons">
+            <a href="orders.html" class="nav-icon-btn" title="Orders" aria-label="Orders"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></a>
+            <a href="wishlist.html" class="nav-icon-btn" title="Wishlist" aria-label="Wishlist"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg><span id="wishlist-badge" class="cart-badge" style="display:none">0</span></a>
+            <a href="cart.html" class="nav-icon-btn cart-link" title="Cart" aria-label="Cart"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span id="cart-badge" class="cart-badge" style="display:none">0</span></a>
+            <a href="account.html" class="nav-icon-btn active" id="account-link" title="Account" aria-label="Account" style="display:none"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></a>
+            <a href="login.html" id="login-btn" class="btn btn-accent btn-sm" style="margin-left:8px;">Login</a>
+            <a href="#" id="logout-btn" class="btn btn-outline btn-sm" style="display:none;margin-left:8px;" onclick="logout(); return false;">Logout</a>
+        </div>
+    </header>
+    <div class="category-strip"><div class="category-strip-inner" id="category-strip"></div></div>
+
+    <div class="container">
+        <div class="breadcrumb"><a href="index.html">Home</a> &rsaquo; <span>My Account</span></div>
+        <div class="page-header">
+            <h1>My Account</h1>
+            <p class="page-subtitle">Manage your profile, security, and preferences</p>
+        </div>
+
+        <div id="account-content">
+            <!-- Profile Section -->
+            <section class="account-section">
+                <h2 class="account-section-title">&#128100; Profile</h2>
+                <div class="account-card">
+                    <div class="profile-header">
+                        <div class="profile-avatar" id="profile-avatar">?</div>
+                        <div class="profile-details">
+                            <div class="profile-row"><span class="profile-label">Email</span><span id="profile-email" class="profile-value">—</span></div>
+                            <div class="profile-row"><span class="profile-label">User ID</span><span id="profile-id" class="profile-value monospace">—</span></div>
+                            <div class="profile-row"><span class="profile-label">Auth Provider</span><span id="profile-provider" class="profile-value">—</span></div>
+                            <div class="profile-row"><span class="profile-label">Session Expires</span><span id="profile-session-exp" class="profile-value">—</span></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Security Section -->
+            <section class="account-section">
+                <h2 class="account-section-title">&#128274; Security</h2>
+                <div class="account-card">
+                    <h3>Change Password</h3>
+                    <p class="text-muted">Password policy: 8+ characters, uppercase, lowercase, numbers</p>
+                    <div class="form-grid compact">
+                        <div class="form-group"><label>Current Password</label><input type="password" id="current-password" placeholder="Enter current password"></div>
+                        <div class="form-group"><label>New Password</label><input type="password" id="new-password" placeholder="Enter new password"></div>
+                        <div class="form-group"><label>Confirm Password</label><input type="password" id="confirm-password" placeholder="Confirm new password"></div>
+                    </div>
+                    <button class="btn btn-primary" onclick="changePassword()">Update Password</button>
+                </div>
+
+            </section>
+
+            <!-- Email Preferences Section -->
+            <section class="account-section">
+                <h2 class="account-section-title">&#128231; Email Preferences</h2>
+                <div class="account-card">
+                    <p class="text-muted">Choose which emails you'd like to receive</p>
+                    <div class="pref-group">
+                        <h4>Order Notifications</h4>
+                        <label class="pref-item"><input type="checkbox" id="pref-order-confirm" checked><span>Order confirmation</span></label>
+                        <label class="pref-item"><input type="checkbox" id="pref-order-shipped" checked><span>Shipping updates</span></label>
+                        <label class="pref-item"><input type="checkbox" id="pref-order-delivered" checked><span>Delivery confirmation</span></label>
+                    </div>
+                    <div class="pref-group">
+                        <h4>Marketing</h4>
+                        <label class="pref-item"><input type="checkbox" id="pref-newsletter"><span>Newsletter &amp; product highlights</span></label>
+                        <label class="pref-item"><input type="checkbox" id="pref-promotions"><span>Promotions &amp; discounts</span></label>
+                        <label class="pref-item"><input type="checkbox" id="pref-restock"><span>Back-in-stock alerts</span></label>
+                    </div>
+                    <button class="btn btn-primary" onclick="saveEmailPreferences()">Save Preferences</button>
+                </div>
+            </section>
+
+            <!-- Saved Addresses Section -->
+            <section class="account-section">
+                <h2 class="account-section-title">&#128205; Saved Addresses</h2>
+                <div class="account-card">
+                    <div id="addresses-list"></div>
+                    <button class="btn btn-outline" style="margin-top:16px;" onclick="showAddressForm()">+ Add New Address</button>
+
+                    <div id="address-form-modal" class="address-form-modal" style="display:none;">
+                        <h3 id="address-form-heading">Add Address</h3>
+                        <div class="form-grid compact">
+                            <div class="form-group"><label>Full Name</label><input type="text" id="addr-name" placeholder="John Doe"></div>
+                            <div class="form-group full-width"><label>Street Address</label><input type="text" id="addr-address" placeholder="123 Main St"></div>
+                            <div class="form-group"><label>City</label><input type="text" id="addr-city" placeholder="Beirut"></div>
+                            <div class="form-group"><label>State / Province</label><input type="text" id="addr-state" placeholder="Mount Lebanon"></div>
+                            <div class="form-group"><label>ZIP / Postal Code</label><input type="text" id="addr-zip" placeholder="1100"></div>
+                            <div class="form-group"><label>Country</label>
+                                <select id="addr-country"><option>Lebanon</option><option>United States</option><option>Canada</option><option>United Kingdom</option><option>Other</option></select>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-outline" onclick="hideAddressForm()">Cancel</button>
+                            <button id="address-form-submit" class="btn btn-primary" onclick="saveNewAddress()">Save Address</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Links -->
+            <section class="account-section">
+                <h2 class="account-section-title">&#128279; Quick Links</h2>
+                <div class="account-links-grid">
+                    <a href="orders.html" class="account-link-card">
+                        <span class="link-icon">&#128230;</span>
+                        <strong>My Orders</strong>
+                        <p>Track status and download invoices</p>
+                    </a>
+                    <a href="wishlist.html" class="account-link-card">
+                        <span class="link-icon">&#9825;</span>
+                        <strong>Wishlist</strong>
+                        <p>Products you saved for later</p>
+                    </a>
+                    <a href="cart.html" class="account-link-card">
+                        <span class="link-icon">&#128722;</span>
+                        <strong>Shopping Cart</strong>
+                        <p>Review items before checkout</p>
+                    </a>
+                    <a href="contact.html" class="account-link-card">
+                        <span class="link-icon">&#128172;</span>
+                        <strong>Help &amp; Support</strong>
+                        <p>Contact us or browse FAQs</p>
+                    </a>
+                </div>
+            </section>
+
+            <!-- Danger Zone -->
+            <section class="account-section">
+                <h2 class="account-section-title" style="color:var(--danger);">&#9888;&#65039; Danger Zone</h2>
+                <div class="account-card danger-zone">
+                    <div class="setting-row">
+                        <div>
+                            <h3>Delete Account</h3>
+                            <p class="text-muted">Permanently delete your account and all associated data. This action cannot be undone.</p>
+                        </div>
+                        <button class="btn btn-danger" onclick="deleteAccount()">Delete Account</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <footer class="footer-main">
+        <div class="footer-grid">
+            <div class="footer-col"><h4>ShopCloud</h4><p>Your trusted online shopping destination. Quality products, fast shipping, and exceptional customer service.</p></div>
+            <div class="footer-col"><h4>Shop</h4><ul><li><a href="index.html">All Products</a></li><li><a href="cart.html">Shopping Cart</a></li><li><a href="orders.html">Order Tracking</a></li><li><a href="wishlist.html">Wishlist</a></li></ul></div>
+            <div class="footer-col"><h4>Customer Service</h4><ul><li><a href="contact.html">Help &amp; FAQ</a></li><li><a href="contact.html">Shipping Info</a></li><li><a href="contact.html">Returns &amp; Refunds</a></li><li><a href="account.html">My Account</a></li></ul></div>
+            <div class="footer-col"><h4>Newsletter</h4><p>Get exclusive deals and new arrivals.</p><form class="footer-newsletter" onsubmit="event.preventDefault(); showToast('Thanks for subscribing!','success');"><input type="email" placeholder="Your email" required><button type="submit" class="btn btn-primary btn-sm">Subscribe</button></form></div>
+        </div>
+        <div class="footer-bottom"><p>&copy; 2026 ShopCloud. All rights reserved.</p></div>
+    </footer>
+
+    <button id="back-to-top" class="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#8679;</button>
+    <div id="mobile-overlay" class="mobile-overlay" onclick="closeMobileMenu()"></div>
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/wishlist.js"></script>
+    <script src="js/account.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            updateAuthUI();
+            updateWishlistBadge();
+            if (!isLoggedIn()) {
+                document.getElementById("account-content").innerHTML =
+                    '<div class="empty-state"><div class="empty-state-icon">&#128274;</div><h3>Please log in</h3><p>Sign in to manage your account</p><a href="login.html" class="btn btn-primary">Login</a></div>';
+                return;
+            }
+            loadAccountPage();
+            updateCartBadge();
+        });
+    </script>
+</body>
+</html>
