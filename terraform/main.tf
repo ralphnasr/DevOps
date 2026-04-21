@@ -95,9 +95,20 @@ module "prod_rds" {
   security_group_id       = module.prod_sg.rds_sg_id
   instance_class          = "db.t3.micro"
   allocated_storage       = 20
-  multi_az                = true  # synchronous standby in second AZ for auto-failover (project HA requirement)
-  backup_retention_period = 1     # minimum non-zero retention (this AWS Free Tier account rejects 7+); raise to 35 once off Free Tier
-  deletion_protection     = true  # block accidental drop of prod data
+  multi_az                = true # synchronous standby in second AZ for auto-failover (project HA requirement)
+  backup_retention_period = 1    # minimum non-zero retention (this AWS Free Tier account rejects 7+); raise to 35 once off Free Tier
+  deletion_protection     = true # block accidental drop of prod data
+}
+
+module "prod_rds_dr_replica" {
+  source = "./modules/rds_dr_replica"
+
+  providers = {
+    aws = aws.eu_west_1
+  }
+
+  source_db_arn  = module.prod_rds.db_instance_arn
+  instance_class = "db.t3.micro"
 }
 
 module "prod_elasticache" {

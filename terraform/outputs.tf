@@ -41,6 +41,15 @@ output "prod_rds_endpoint" {
   value = module.prod_rds.endpoint
 }
 
+output "prod_rds_dr_replica_endpoint" {
+  description = "Cross-region read replica in eu-west-1 — DR target + low-latency EU reads (Phase 1 §2.3)"
+  value       = module.prod_rds_dr_replica.replica_endpoint
+}
+
+output "prod_rds_dr_replica_region" {
+  value = module.prod_rds_dr_replica.replica_region
+}
+
 output "prod_redis_endpoint" {
   value = module.prod_elasticache.endpoint
 }

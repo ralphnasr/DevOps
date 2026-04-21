@@ -18,3 +18,11 @@ output "master_password" {
   value     = random_password.master.result
   sensitive = true
 }
+
+output "db_instance_arn" {
+  value = aws_db_instance.main.arn
+}
+
+output "db_instance_id" {
+  value = aws_db_instance.main.id
+}
