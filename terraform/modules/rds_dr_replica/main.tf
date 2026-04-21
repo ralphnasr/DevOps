@@ -34,6 +34,19 @@ resource "aws_subnet" "dr" {
   tags = { Name = "shopcloud-dr-subnet-${count.index}" }
 }
 
+resource "aws_kms_key" "dr" {
+  description             = "KMS key for cross-region RDS replica in eu-west-1"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+
+  tags = { Name = "shopcloud-dr-rds-kms" }
+}
+
+resource "aws_kms_alias" "dr" {
+  name          = "alias/shopcloud-dr-rds"
+  target_key_id = aws_kms_key.dr.key_id
+}
+
 resource "aws_db_subnet_group" "dr" {
   name       = "shopcloud-dr-db-subnet"
   subnet_ids = aws_subnet.dr[*].id
@@ -43,7 +56,7 @@ resource "aws_db_subnet_group" "dr" {
 
 resource "aws_security_group" "dr" {
   name        = "shopcloud-dr-rds-sg"
-  description = "Cross-region RDS replica — VPC-internal access only"
+  description = "Cross-region RDS replica - VPC-internal access only"
   vpc_id      = aws_vpc.dr.id
 
   ingress {
@@ -74,6 +87,7 @@ resource "aws_db_instance" "replica" {
 
   publicly_accessible        = false
   storage_encrypted          = true
+  kms_key_id                 = aws_kms_key.dr.arn
   auto_minor_version_upgrade = true
   skip_final_snapshot        = true
   apply_immediately          = true
