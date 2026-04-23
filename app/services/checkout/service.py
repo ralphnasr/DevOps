@@ -139,6 +139,7 @@ async def process_checkout(
 
     # 4. Get or create customer
     customer = await _get_or_create_customer(db, cognito_sub, email)
+    email_suppressed = bool(getattr(customer, "email_suppressed", False))
 
     # 5. Create order
     order = Order(
@@ -179,6 +180,7 @@ async def process_checkout(
         "order_id": order.id,
         "customer_id": customer.id,
         "customer_email": email,
+        "suppressed": email_suppressed,
         "items": [
             {
                 "product_name": item["product_name"],
@@ -204,7 +206,12 @@ async def process_checkout(
         "discount_amount": discount_amount,
         "coupon_code": applied_code,
         "total_amount": float(order.total_amount),
-        "message": "Order confirmed — your invoice is being generated and will arrive by email shortly.",
+        "message": (
+            "Order confirmed — your invoice is being generated. "
+            "Download it from your order confirmation page."
+            if email_suppressed
+            else "Order confirmed — your invoice is being generated and will arrive by email shortly."
+        ),
     }
     return response, sqs_message
 

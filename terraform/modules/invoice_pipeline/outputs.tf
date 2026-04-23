@@ -21,3 +21,19 @@ output "s3_bucket_arn" {
 output "lambda_function_arn" {
   value = aws_lambda_function.invoice.arn
 }
+
+output "ses_configuration_set_name" {
+  value = aws_ses_configuration_set.main.name
+}
+
+output "ses_events_topic_arn" {
+  value = aws_sns_topic.ses_events.arn
+}
+
+output "bounce_handler_function_arn" {
+  value = aws_lambda_function.bounce_handler.arn
+}
+
+output "dashboard_name" {
+  value = aws_cloudwatch_dashboard.ses.dashboard_name
+}

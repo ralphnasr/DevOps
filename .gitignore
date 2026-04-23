@@ -68,3 +68,6 @@ docs/
 
 # Git commands script (local use only)
 GIT_COMMANDS.sh
+
+# Personal study notes (local use only)
+phase1/REVISION_SHEET.md

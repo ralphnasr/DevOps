@@ -1,0 +1,1 @@
+arn:aws:ecs:us-east-1:519718528172:task/shopcloud-prod/354c88be30464ba1bb5a9b1f007019d0

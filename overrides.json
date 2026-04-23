@@ -1,0 +1,1 @@
+{"containerOverrides":[{"name":"migrate","command":["python","scripts/seed_data.py"]}]}

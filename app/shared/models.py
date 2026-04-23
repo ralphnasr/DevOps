@@ -74,11 +74,17 @@ class Customer(Base):
     cognito_sub = Column(String(255), unique=True, nullable=False)
     email = Column(String(255), nullable=False)
     full_name = Column(String(255))
+    email_suppressed = Column(Boolean, server_default="false", nullable=False)
+    suppressed_reason = Column(String(50))
+    suppressed_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     orders = relationship("Order", back_populates="customer")
 
-    __table_args__ = (Index("idx_customers_cognito", "cognito_sub"),)
+    __table_args__ = (
+        Index("idx_customers_cognito", "cognito_sub"),
+        Index("idx_customers_email", "email"),
+    )
 
 
 class Order(Base):
