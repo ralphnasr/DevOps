@@ -14,6 +14,7 @@ Flow per message:
      backoff; hard rejects fail fast and are logged (no retry, no DLQ —
      invoice_url is persisted and the user can re-trigger from the UI).
 """
+
 import json
 import logging
 import os
@@ -164,7 +165,7 @@ def _send_email_with_retry(*, to_email: str, order_id: int, invoice_url: str) ->
         except ClientError as e:
             code = e.response.get("Error", {}).get("Code", "")
             if code in _RETRYABLE_SES_ERRORS and attempt < 2:
-                sleep_for = 2 ** attempt  # 1s, 2s
+                sleep_for = 2**attempt  # 1s, 2s
                 logger.warning(
                     f"SES transient error {code} on attempt {attempt + 1}, "
                     f"retrying in {sleep_for}s"
@@ -235,8 +236,7 @@ def handler(event, context):
         except ClientError as e:
             code = e.response.get("Error", {}).get("Code", "")
             logger.error(
-                f"Permanent SES failure for order {order_id} "
-                f"(code={code}): {e}"
+                f"Permanent SES failure for order {order_id} (code={code}): {e}"
             )
             # Don't re-raise — PDF is stored and invoice_url is in RDS, so the
             # customer can still download from the order confirmation page.

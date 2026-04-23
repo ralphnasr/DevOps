@@ -10,6 +10,7 @@ Complaints (user hit "Report spam") are treated the same way — we stop
 sending. Soft bounces (mailbox full, greylist) are ignored; SES retries
 them naturally.
 """
+
 import json
 import logging
 import os

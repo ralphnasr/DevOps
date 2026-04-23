@@ -30,9 +30,7 @@ def upgrade() -> None:
     )
     op.add_column(
         "customers",
-        sa.Column(
-            "suppressed_at", sa.DateTime(timezone=True), nullable=True
-        ),
+        sa.Column("suppressed_at", sa.DateTime(timezone=True), nullable=True),
     )
     op.create_index(
         "idx_customers_email",

@@ -50,6 +50,9 @@ Thumbs.db
 app/invoice/package/
 lambda.zip
 
+# Terraform provider cache (large binary, not source)
+tf-cache.tar.gz
+
 # Keys
 *.pem
 *.key
