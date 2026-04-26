@@ -87,13 +87,19 @@ async def startup():
 
 @app.get("/health")
 async def health():
+    # Liveness only — see admin.py for rationale.
+    return {"status": "healthy", "service": "checkout"}
+
+
+@app.get("/ready")
+async def ready():
     try:
         async with engine.begin() as conn:
             await conn.execute(text("SELECT 1"))
         r = get_redis_client()
         await r.ping()
         await r.aclose()
-        return {"status": "healthy", "service": "checkout"}
+        return {"status": "ready", "service": "checkout"}
     except Exception:
         raise HTTPException(status_code=503, detail="Service dependencies unreachable")
 

@@ -98,6 +98,12 @@ async def startup():
 
 @app.get("/health")
 async def health():
+    # Liveness only — see admin.py for rationale.
+    return {"status": "healthy", "service": "combined"}
+
+
+@app.get("/ready")
+async def ready():
     status = {"service": "combined", "postgres": "unknown", "redis": "unknown"}
     try:
         async with engine.begin() as conn:
@@ -115,13 +121,13 @@ async def health():
         status["redis"] = "unhealthy"
 
     overall = (
-        "healthy"
+        "ready"
         if status["postgres"] == "healthy" and status["redis"] == "healthy"
         else "degraded"
     )
     status["status"] = overall
 
-    if overall != "healthy":
+    if overall != "ready":
         raise HTTPException(status_code=503, detail=status)
     return status
 

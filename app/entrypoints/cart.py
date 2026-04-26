@@ -74,11 +74,17 @@ async def request_logging(request: Request, call_next):
 
 @app.get("/health")
 async def health():
+    # Liveness only — see admin.py for rationale.
+    return {"status": "healthy", "service": "cart"}
+
+
+@app.get("/ready")
+async def ready():
     try:
         r = get_redis_client()
         await r.ping()
         await r.aclose()
-        return {"status": "healthy", "service": "cart"}
+        return {"status": "ready", "service": "cart"}
     except Exception:
         raise HTTPException(status_code=503, detail="Redis unreachable")
 

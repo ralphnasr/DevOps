@@ -86,13 +86,19 @@ async def startup():
 
 @app.get("/health")
 async def health():
+    # Liveness only — see admin.py for rationale.
+    return {"status": "healthy", "service": "catalog"}
+
+
+@app.get("/ready")
+async def ready():
+    from fastapi import HTTPException
+
     try:
         async with engine.begin() as conn:
             await conn.execute(text("SELECT 1"))
-        return {"status": "healthy", "service": "catalog"}
+        return {"status": "ready", "service": "catalog"}
     except Exception:
-        from fastapi import HTTPException
-
         raise HTTPException(status_code=503, detail="Database unreachable")
 
 
