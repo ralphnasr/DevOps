@@ -25,8 +25,13 @@ resource "aws_cloudwatch_metric_alarm" "ecs_cpu_high" {
   ok_actions          = local.sns_actions
 
   dimensions = {
+    # ECS publishes ServiceName as the short name (e.g. "cart"), which is
+    # each.key in our map. each.value is the full task-def name like
+    # "shopcloud-prod-cart" — wrong here. Caused tasks-low to stay stuck
+    # in ALARM forever because no datapoints matched and treat_missing_data
+    # is "breaching" for the running-tasks alarm.
     ClusterName = var.ecs_cluster_name
-    ServiceName = each.value
+    ServiceName = each.key
   }
 }
 
@@ -47,8 +52,13 @@ resource "aws_cloudwatch_metric_alarm" "ecs_memory_high" {
   ok_actions          = local.sns_actions
 
   dimensions = {
+    # ECS publishes ServiceName as the short name (e.g. "cart"), which is
+    # each.key in our map. each.value is the full task-def name like
+    # "shopcloud-prod-cart" — wrong here. Caused tasks-low to stay stuck
+    # in ALARM forever because no datapoints matched and treat_missing_data
+    # is "breaching" for the running-tasks alarm.
     ClusterName = var.ecs_cluster_name
-    ServiceName = each.value
+    ServiceName = each.key
   }
 }
 
@@ -69,8 +79,13 @@ resource "aws_cloudwatch_metric_alarm" "ecs_running_tasks_low" {
   ok_actions          = local.sns_actions
 
   dimensions = {
+    # ECS publishes ServiceName as the short name (e.g. "cart"), which is
+    # each.key in our map. each.value is the full task-def name like
+    # "shopcloud-prod-cart" — wrong here. Caused tasks-low to stay stuck
+    # in ALARM forever because no datapoints matched and treat_missing_data
+    # is "breaching" for the running-tasks alarm.
     ClusterName = var.ecs_cluster_name
-    ServiceName = each.value
+    ServiceName = each.key
   }
 }
 
