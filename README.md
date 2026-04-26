@@ -463,13 +463,35 @@ aws sqs start-message-move-task \
   --source-arn arn:aws:sqs:us-east-1:519718528172:shopcloud-prod-orders-dlq
 ```
 
-### SES sandbox
+### SES sandbox (known constraint)
 
-The AWS account is still in SES sandbox mode (verified by
+The AWS account is in SES sandbox mode (verified by
 `aws ses get-send-quota` → `Max24HourSend: 200`). Only emails to verified
-identities can receive invoices. The verified sender is
-`sarmad.farhat2017@gmail.com`. Production use requires a sandbox-removal
-ticket via the SES console (1-2 day turnaround).
+identities (`sarmad.farhat2017@gmail.com`, `hasan.nasrallah23@gmail.com`,
+`rasha_alannan@live.com`) can receive invoices.
+
+**A production-access request was submitted to AWS Trust & Safety on
+2026-04-22 and denied on 2026-04-23.** The reason given was account
+maturity, not project quality:
+
+> "Due to some limiting factors on your account currently, you are not
+> eligible to send SES messages in US East (N. Virginia) region. You will
+> need to show a pattern of use of other AWS services and a consistent
+> paid billing history to gain access to this function. Please open a
+> new case after you have a successful billing cycle and additional use
+> of other AWS services."
+
+This is AWS's standard auto-denial for accounts under ~30 days old without
+sustained billing history — independent of the technical merits of the
+request. The full bounce / complaint pipeline (SNS → Lambda → email
+suppression in RDS) is implemented and exercised end-to-end against the
+verified addresses; it will continue to function unchanged once the
+account ages out of the restriction. **Re-apply 30–60 days after the
+first paid billing cycle.**
+
+Demo and grading flows are unaffected: customer Cognito accounts are
+created with the verified addresses, so every order in the demo produces
+a real invoice email.
 
 ## Tech Stack
 
