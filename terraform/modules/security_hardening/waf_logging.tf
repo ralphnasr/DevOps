@@ -42,7 +42,10 @@ resource "aws_cloudwatch_event_target" "ecr_critical_to_sns" {
   arn       = var.alarms_sns_topic_arn
 }
 
-# Allow EventBridge to publish to the SNS topic.
+# Allow EventBridge AND CloudWatch Alarms to publish to the SNS topic.
+# aws_sns_topic_policy REPLACES the default policy, so CloudWatch loses its
+# implicit access unless we add it back here. Without this, alarm actions
+# fail with "CloudWatch Alarms is not authorized to perform: SNS:Publish".
 data "aws_iam_policy_document" "sns_eventbridge_publish" {
   count = var.create_account_singletons ? 1 : 0
 
@@ -52,6 +55,16 @@ data "aws_iam_policy_document" "sns_eventbridge_publish" {
     principals {
       type        = "Service"
       identifiers = ["events.amazonaws.com"]
+    }
+    resources = [var.alarms_sns_topic_arn]
+  }
+
+  statement {
+    sid     = "AllowCloudWatchAlarmsPublish"
+    actions = ["sns:Publish"]
+    principals {
+      type        = "Service"
+      identifiers = ["cloudwatch.amazonaws.com"]
     }
     resources = [var.alarms_sns_topic_arn]
   }
