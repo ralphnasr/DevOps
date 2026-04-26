@@ -183,35 +183,13 @@ resource "aws_iam_role_policy" "lambda" {
 # and zip THAT directory. Zipping app/invoice/ directly (without the install step)
 # yields a 7 KB bundle that crashes at cold start with `No module named psycopg2`.
 
-resource "null_resource" "lambda_build" {
-  triggers = {
-    source_hash       = filesha256("${path.module}/../../../app/invoice/lambda_function.py")
-    requirements_hash = filesha256("${path.module}/../../../app/invoice/requirements.txt")
-  }
-
-  # Runs on Linux CI via the default sh interpreter. For local Windows applies,
-  # pre-build the zip with `bash scripts/build_lambdas.sh` from Git Bash; this
-  # null_resource will then be a no-op because state will already match.
-  provisioner "local-exec" {
-    working_dir = "${path.module}/../../../app/invoice"
-    command     = <<-EOT
-      rm -rf build && mkdir build && cp lambda_function.py build/ && \
-      docker run --rm --platform linux/amd64 \
-        -v "$(pwd)/build":/var/task \
-        -v "$(pwd)/requirements.txt":/var/task/requirements.txt \
-        --entrypoint /bin/bash \
-        public.ecr.aws/sam/build-python3.12 \
-        -c "pip install -r /var/task/requirements.txt -t /var/task --no-cache-dir"
-    EOT
-  }
-}
-
+# Build artifacts are produced by `scripts/build_lambdas.sh`, which runs in
+# CI before terraform plan/apply (and locally before any Windows apply).
+# Terraform just zips the prebuilt build/ directory.
 data "archive_file" "lambda" {
   type        = "zip"
   source_dir  = "${path.module}/../../../app/invoice/build"
   output_path = "${path.module}/lambda.zip"
-
-  depends_on = [null_resource.lambda_build]
 }
 
 resource "aws_lambda_function" "invoice" {
@@ -257,35 +235,10 @@ resource "aws_lambda_event_source_mapping" "sqs_trigger" {
 # suppressed in RDS so checkout stops publishing invoice messages for them.
 # Keeps us below AWS's 5% bounce / 0.1% complaint enforcement thresholds.
 
-resource "null_resource" "bounce_lambda_build" {
-  triggers = {
-    source_hash = filesha256("${path.module}/../../../app/invoice/bounce_handler.py")
-    # Force rebuild on every plan/apply so `data.archive_file.bounce_lambda`
-    # below always defers to apply time. Without this, CI plan tries to read
-    # bounce_build/ at plan time and fails because the dir was only created
-    # by a prior local apply on the developer's box.
-    always_run = timestamp()
-  }
-
-  provisioner "local-exec" {
-    working_dir = "${path.module}/../../../app/invoice"
-    command     = <<-EOT
-      rm -rf bounce_build && mkdir bounce_build && cp bounce_handler.py bounce_build/ && \
-      docker run --rm --platform linux/amd64 \
-        -v "$(pwd)/bounce_build":/var/task \
-        --entrypoint /bin/bash \
-        public.ecr.aws/sam/build-python3.12 \
-        -c "pip install psycopg2-binary==2.9.10 -t /var/task --no-cache-dir"
-    EOT
-  }
-}
-
 data "archive_file" "bounce_lambda" {
   type        = "zip"
   source_dir  = "${path.module}/../../../app/invoice/bounce_build"
   output_path = "${path.module}/bounce_lambda.zip"
-
-  depends_on = [null_resource.bounce_lambda_build]
 }
 
 resource "aws_iam_role" "bounce_lambda" {
