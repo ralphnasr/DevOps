@@ -98,3 +98,46 @@ output "dev_bastion_ip" {
 output "dev_ecs_cluster" {
   value = module.dev_ecs.ecs_cluster_name
 }
+
+# ── Phase 3: Monitoring ──
+output "prod_dashboard_url" {
+  value = module.prod_monitoring.dashboard_url
+}
+
+output "dev_dashboard_url" {
+  value = module.dev_monitoring.dashboard_url
+}
+
+output "prod_alarms_topic_arn" {
+  description = "SNS topic that all prod CloudWatch alarms publish to"
+  value       = module.prod_monitoring.sns_topic_arn
+}
+
+output "dev_alarms_topic_arn" {
+  value = module.dev_monitoring.sns_topic_arn
+}
+
+# ── Phase 3: Security ──
+output "prod_flow_log_group" {
+  value = module.prod_security.flow_log_group_name
+}
+
+output "dev_flow_log_group" {
+  value = module.dev_security.flow_log_group_name
+}
+
+output "cloudtrail_bucket" {
+  value = module.prod_security.cloudtrail_bucket
+}
+
+output "guardduty_detector_id" {
+  value = module.prod_security.guardduty_detector_id
+}
+
+output "access_analyzer_arn" {
+  value = module.prod_security.access_analyzer_arn
+}
+
+output "waf_log_group" {
+  value = module.prod_security.waf_log_group_name
+}

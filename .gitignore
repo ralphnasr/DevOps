@@ -48,7 +48,9 @@ Thumbs.db
 
 # Lambda packaging
 app/invoice/package/
+app/invoice/bounce_build/
 lambda.zip
+terraform/modules/invoice_pipeline/*.zip
 
 # Terraform provider cache (large binary, not source)
 tf-cache.tar.gz
@@ -74,3 +76,4 @@ GIT_COMMANDS.sh
 
 # Personal study notes (local use only)
 phase1/REVISION_SHEET.md
+phase1/REVISION_DEEP.md

@@ -69,7 +69,7 @@ shopCloud/
 │   ├── css/                      # Responsive stylesheet
 │   └── *.html                    # 7 pages
 ├── terraform/                    # Infrastructure as Code
-│   ├── modules/                  # 12 reusable modules
+│   ├── modules/                  # 14 reusable modules
 │   │   ├── vpc/                  # VPC with 3-tier subnets
 │   │   ├── security_groups/      # 8 security groups
 │   │   ├── ecr/                  # Container registry
@@ -81,7 +81,9 @@ shopCloud/
 │   │   ├── invoice_pipeline/     # SQS + Lambda + S3 + SES
 │   │   ├── edge/                 # CloudFront + WAF + Route 53
 │   │   ├── bastion/              # Bastion host
-│   │   └── ssm/                  # Parameter Store
+│   │   ├── ssm/                  # Parameter Store
+│   │   ├── monitoring/           # SNS + CloudWatch alarms + dashboard
+│   │   └── security_hardening/   # NACLs + Flow Logs + CloudTrail + GuardDuty + Config + WAF logs
 │   ├── main.tf                   # Root module (prod + dev environments)
 │   ├── variables.tf
 │   ├── outputs.tf
@@ -207,12 +209,17 @@ Triggered on push to `main` branch:
 ## Security
 
 - **Authentication:** AWS Cognito (2 user pools — customer + admin)
-- **Network:** 3-tier VPC (public, app, data subnets), 8 security groups
+- **Network:** 3-tier VPC (public, app, data subnets), 8 security groups, 3 NACLs (defense in depth)
 - **Edge:** CloudFront + WAF (OWASP rules, SQLi protection, rate limiting)
 - **Admin Isolation:** Internal ALB, accessible only via bastion SSH tunnel
 - **Secrets:** SSM Parameter Store (SecureString for passwords)
-- **Container Security:** ECR scan-on-push enabled
+- **Container Security:** ECR scan-on-push + EventBridge alert on CRITICAL findings
 - **Database:** Encrypted at rest, private subnet only, no public access
+- **Audit:** CloudTrail (account-wide), VPC Flow Logs (per-env), WAF logs
+- **Threat Detection:** GuardDuty (S3 protection), IAM Access Analyzer
+- **Compliance:** AWS Config recorder + 9 managed rules
+
+Full posture documented in [`docs/security-hardening-report.md`](docs/security-hardening-report.md).
 
 ## Environments
 
@@ -226,6 +233,117 @@ Triggered on push to `main` branch:
 | ALB | Public + Internal | Public only |
 | CloudFront + WAF | Yes (CommonRuleSet + SQLi + RateLimit) | No |
 | ECR scan-on-push | All 5 repos (catalog, cart, checkout, admin, migrate) | Same repos shared |
+
+## Monitoring & Observability
+
+Phase 3 wires every critical signal into CloudWatch (alarms + dashboard +
+Log Insights) and routes pages through a single SNS topic per environment.
+
+### Alarm routing
+
+Each env has one SNS topic (`shopcloud-{env}-alarms`). Ops gets paged via the
+email subscription gated on `var.alarm_email` — set it once at the root level:
+
+```bash
+terraform apply -var="alarm_email=oncall@yourdomain.com"
+```
+
+Dev's topic exists but has no email subscription by design — prod owns the
+on-call surface so dev noise doesn't double-page anyone. After apply, AWS
+sends a confirmation email; **click the link** or no alarm will ever reach
+the inbox.
+
+### Dashboard
+
+A single 15-widget dashboard per env covers service health, ALB latency &
+errors, ECS CPU/memory, Lambda, RDS, Redis, SQS, and DLQ depth.
+
+```bash
+# Get the direct console URL after apply
+terraform output prod_dashboard_url
+terraform output dev_dashboard_url
+```
+
+The dashboard auto-extends to new ECS services (driven by the
+`ecs_services` map in `main.tf`).
+
+### Alarms (38 in prod)
+
+| Tier | Coverage |
+|------|---------|
+| ECS (per service) | CPU > 80% (10 min), memory > 85%, running tasks < desired |
+| ALB | 5xx > 10/5min, 4xx > 50/5min, p99 latency > 2s, unhealthy targets > 0 |
+| RDS | CPU > 80%, connections > 50, free storage < 2 GiB, read latency > 20 ms, write > 50 ms, replica lag > 30 s (prod) |
+| ElastiCache | CPU > 80%, memory > 85%, evictions > 0, connections > 100 |
+| Lambda | Errors > 3/15min, duration > 25s, throttles > 0 |
+| SQS DLQ | Any message visible (paged via invoice_pipeline + monitoring topics) |
+| NAT Gateway | Packet drops > 10/5min |
+
+### Log Insights queries
+
+Structured JSON logging is in place across all services. Eight saved queries
+live in CloudWatch Logs Insights — run them by name from the console:
+
+| Query | Use case |
+|---|---|
+| `errors-last-hour` | Triage spike of 5xx |
+| `slow-requests-p95` | Find endpoints > 1s |
+| `auth-failures` | Cognito + JWT rejection patterns |
+| `cart-redis-errors` | Cache layer issues |
+| `checkout-failures` | Order placement failures |
+| `lambda-invoice-errors` | PDF + SES pipeline issues |
+| `dlq-replay-trace` | Trace a message that hit the DLQ |
+| `admin-access-audit` | Who did what on admin |
+
+Run with:
+
+```bash
+aws logs start-query \
+  --log-group-name /ecs/shopcloud-prod-checkout \
+  --start-time $(date -d '1 hour ago' +%s) \
+  --end-time $(date +%s) \
+  --query-string "fields @timestamp, @message | filter level='ERROR' | sort @timestamp desc"
+```
+
+### VPC Flow Logs
+
+| Env | Log group | Retention |
+|---|---|---|
+| Prod | `/vpc/shopcloud-prod/flow-logs` | 30 days |
+| Dev | `/vpc/shopcloud-dev/flow-logs` | 14 days |
+
+Captures `ALL` traffic (accept + reject) for both troubleshooting and
+security forensics.
+
+### CloudTrail + GuardDuty + Config
+
+| Resource | Location / ID |
+|---|---|
+| CloudTrail S3 bucket | `shopcloud-cloudtrail-<account>` (all regions, mgmt events) |
+| GuardDuty detector | `terraform output guardduty_detector_id` (S3 protection on) |
+| IAM Access Analyzer | `terraform output access_analyzer_arn` (account-level) |
+| AWS Config recorder | `shopcloud-recorder` (9 managed rules — see security report §6) |
+| WAF log group | `/aws/wafv2/shopcloud-prod` |
+
+These are all **account-wide singletons**, gated in Terraform via
+`create_account_singletons = true` on the prod security_hardening module
+only — dev does not duplicate them.
+
+### Verification after `terraform apply`
+
+```bash
+# 1. Confirm SNS subscription is "Confirmed" (not "PendingConfirmation")
+aws sns list-subscriptions-by-topic \
+  --topic-arn $(terraform output -raw prod_alarms_topic_arn)
+
+# 2. Trigger a test alarm
+aws cloudwatch set-alarm-state \
+  --alarm-name shopcloud-prod-orders-dlq-not-empty \
+  --state-value ALARM --state-reason "smoke test"
+
+# 3. Open the dashboard
+echo $(terraform output -raw prod_dashboard_url)
+```
 
 ## Rollback Procedures
 
@@ -359,6 +477,8 @@ ticket via the SES console (1-2 day turnaround).
 - **Database:** PostgreSQL 16 (JSONB, TSVECTOR full-text search)
 - **Cache:** Redis 7
 - **Frontend:** Vanilla HTML/CSS/JS (no build step)
-- **IaC:** Terraform 1.7+ (12 modules)
+- **IaC:** Terraform 1.7+ (14 modules)
+- **Observability:** CloudWatch (alarms, dashboard, Log Insights), SNS, X-Ray-ready structured JSON logs
+- **Security tooling:** WAF, GuardDuty, AWS Config, CloudTrail, IAM Access Analyzer, VPC Flow Logs, ECR scan
 - **CI/CD:** GitHub Actions
 - **Containers:** Docker multi-target builds, ECS Fargate

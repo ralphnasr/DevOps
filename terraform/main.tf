@@ -374,3 +374,99 @@ module "dev_ecs" {
     COGNITO_ADMIN_CLIENT_ID = module.dev_ssm.cognito_admin_client_id_arn
   }
 }
+
+# ══════════════════════════════════════════════════════════════
+# PHASE 3 — MONITORING & OBSERVABILITY
+# ══════════════════════════════════════════════════════════════
+# One monitoring module per environment. Prod also wires Lambda + SQS DLQ
+# alarms (dev has no invoice pipeline). DLQ name is derived from the queue
+# URL: split on / and take the last segment.
+
+module "prod_monitoring" {
+  source      = "./modules/monitoring"
+  environment = "prod"
+  alarm_email = var.alarm_email
+
+  ecs_cluster_name = module.prod_ecs.ecs_cluster_name
+  ecs_services = {
+    catalog  = "shopcloud-prod-catalog"
+    cart     = "shopcloud-prod-cart"
+    checkout = "shopcloud-prod-checkout"
+    admin    = "shopcloud-prod-admin"
+  }
+
+  alb_arn_suffix                = module.prod_public_alb.alb_arn_suffix
+  alb_target_group_arn_suffixes = module.prod_public_alb.target_group_arn_suffixes
+
+  rds_instance_id = module.prod_rds.db_instance_id
+  rds_has_replica = true
+
+  elasticache_cluster_id = "shopcloud-prod"
+
+  lambda_function_name = "shopcloud-prod-invoice"
+  sqs_dlq_name         = element(split("/", module.prod_invoice.sqs_dlq_url), length(split("/", module.prod_invoice.sqs_dlq_url)) - 1)
+
+  nat_gateway_id = module.prod_vpc.nat_gateway_id
+}
+
+module "dev_monitoring" {
+  source      = "./modules/monitoring"
+  environment = "dev"
+  alarm_email = "" # dev re-uses prod's email path; skip subscription to avoid double pages
+
+  ecs_cluster_name = module.dev_ecs.ecs_cluster_name
+  ecs_services = {
+    combined = "shopcloud-dev-combined"
+    admin    = "shopcloud-dev-admin"
+  }
+
+  alb_arn_suffix                = module.dev_alb.alb_arn_suffix
+  alb_target_group_arn_suffixes = module.dev_alb.target_group_arn_suffixes
+
+  rds_instance_id = module.dev_rds.db_instance_id
+  rds_has_replica = false
+
+  elasticache_cluster_id = "shopcloud-dev"
+
+  nat_gateway_id = module.dev_vpc.nat_gateway_id
+}
+
+# ══════════════════════════════════════════════════════════════
+# PHASE 3 — SECURITY HARDENING
+# ══════════════════════════════════════════════════════════════
+# Per-env: VPC Flow Logs + 3 NACLs. Account-wide singletons (CloudTrail,
+# GuardDuty, IAM Access Analyzer, AWS Config) live on prod only.
+
+module "prod_security" {
+  source      = "./modules/security_hardening"
+  environment = "prod"
+
+  vpc_id                    = module.prod_vpc.vpc_id
+  public_subnet_ids         = module.prod_vpc.public_subnet_ids
+  private_app_subnet_ids    = module.prod_vpc.private_app_subnet_ids
+  private_data_subnet_ids   = module.prod_vpc.private_data_subnet_ids
+  public_subnet_cidrs       = module.prod_vpc.public_subnet_cidrs
+  private_app_subnet_cidrs  = module.prod_vpc.private_app_subnet_cidrs
+  private_data_subnet_cidrs = module.prod_vpc.private_data_subnet_cidrs
+  admin_cidr_blocks         = var.admin_cidr_blocks
+
+  waf_acl_arn               = module.edge.waf_acl_arn
+  create_account_singletons = true
+  alarms_sns_topic_arn      = module.prod_monitoring.sns_topic_arn
+  enable_guardduty          = var.enable_guardduty
+}
+
+module "dev_security" {
+  source      = "./modules/security_hardening"
+  environment = "dev"
+
+  vpc_id                    = module.dev_vpc.vpc_id
+  public_subnet_ids         = module.dev_vpc.public_subnet_ids
+  private_app_subnet_ids    = module.dev_vpc.private_app_subnet_ids
+  private_data_subnet_ids   = module.dev_vpc.private_data_subnet_ids
+  public_subnet_cidrs       = module.dev_vpc.public_subnet_cidrs
+  private_app_subnet_cidrs  = module.dev_vpc.private_app_subnet_cidrs
+  private_data_subnet_cidrs = module.dev_vpc.private_data_subnet_cidrs
+  admin_cidr_blocks         = var.admin_cidr_blocks
+  # No WAF in dev, no account singletons.
+}

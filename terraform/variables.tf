@@ -99,3 +99,17 @@ variable "ses_verified_email" {
   description = "Verified sender email for invoices"
   default     = "noreply@shopcloud.example.com"
 }
+
+# ── Phase 3 (monitoring) ──
+
+variable "alarm_email" {
+  type        = string
+  description = "Email subscribed to the prod alarms SNS topic. Empty string skips the subscription."
+  default     = ""
+}
+
+variable "enable_guardduty" {
+  type        = bool
+  description = "Provision the GuardDuty detector. Default false because the IAM identity in this account is not subscribed to GuardDuty (returns SubscriptionRequiredException). Set true once permissions are attached and re-import any existing detector."
+  default     = false
+}

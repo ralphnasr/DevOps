@@ -1,18 +1,19 @@
 """Invoice generator: SQS → PDF → S3 → RDS → SES.
 
 Flow per message:
-  1. Check the customer's email isn't suppressed (hard-bounced / complained).
-     If it is, skip the send step but still generate + store the PDF and write
-     invoice_url to the order — the customer can still download from the
-     confirmation page.
-  2. Generate PDF with fpdf2.
-  3. Upload to the invoices S3 bucket.
-  4. Presign a 7-day URL and write it to orders.invoice_url.
+  1. Generate PDF with fpdf2.
+  2. Upload to the invoices S3 bucket.
+  3. Presign a 7-day URL and write it to orders.invoice_url.
+  4. Check the customer's email isn't suppressed (hard-bounced / complained).
+     If it is, skip the send step — the PDF + invoice_url are still persisted
+     so the customer can download from the order confirmation page.
   5. Send the email via SES using our configuration set (so bounces /
      complaints flow to the SNS topic → bounce-handler Lambda → auto-suppress).
      Transient errors (Throttling, ServiceUnavailable) retry with exponential
-     backoff; hard rejects fail fast and are logged (no retry, no DLQ —
-     invoice_url is persisted and the user can re-trigger from the UI).
+     backoff. Permanent SES rejects re-raise so SQS retries the message;
+     after maxReceiveCount it lands in the DLQ and the DLQ alarm pages ops.
+     Email delivery is a project requirement, so we surface failures rather
+     than silently dropping them.
 """
 
 import json
@@ -238,9 +239,10 @@ def handler(event, context):
             logger.error(
                 f"Permanent SES failure for order {order_id} (code={code}): {e}"
             )
-            # Don't re-raise — PDF is stored and invoice_url is in RDS, so the
-            # customer can still download from the order confirmation page.
-            # Bounce/complaint events (if any) will flow through SNS to the
-            # bounce-handler Lambda independently.
+            # Re-raise so SQS retries; after maxReceiveCount the message lands
+            # in the DLQ and the DLQ alarm pages ops. PDF + invoice_url are
+            # already persisted, so re-runs are idempotent (S3 overwrites the
+            # same key, the UPDATE is a no-op refresh).
+            raise
 
     return {"statusCode": 200, "body": json.dumps("Invoices processed")}

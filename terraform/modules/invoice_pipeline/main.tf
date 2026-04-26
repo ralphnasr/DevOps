@@ -191,14 +191,18 @@ resource "null_resource" "lambda_build" {
 
   provisioner "local-exec" {
     working_dir = "${path.module}/../../../app/invoice"
-    command     = <<-EOT
+    interpreter = ["C:/Program Files/Git/bin/bash.exe", "-c"]
+    # MSYS_NO_PATHCONV stops Git Bash from rewriting /bin/bash and /var/task
+    # into Windows paths before docker sees them.
+    command = <<-EOT
+      export MSYS_NO_PATHCONV=1
       rm -rf build && mkdir build && cp lambda_function.py build/ && \
       docker run --rm --platform linux/amd64 \
-        -v "$(pwd)/build":/var/task \
-        -v "$(pwd)/requirements.txt":/var/task/requirements.txt \
-        --entrypoint /bin/bash \
+        -v "$(pwd -W)/build:/var/task" \
+        -v "$(pwd -W)/requirements.txt:/var/task/requirements.txt" \
+        --entrypoint pip \
         public.ecr.aws/sam/build-python3.12 \
-        -c "pip install -r /var/task/requirements.txt -t /var/task --no-cache-dir"
+        install -r /var/task/requirements.txt -t /var/task --no-cache-dir
     EOT
   }
 }
@@ -261,13 +265,15 @@ resource "null_resource" "bounce_lambda_build" {
 
   provisioner "local-exec" {
     working_dir = "${path.module}/../../../app/invoice"
+    interpreter = ["C:/Program Files/Git/bin/bash.exe", "-c"]
     command     = <<-EOT
+      export MSYS_NO_PATHCONV=1
       rm -rf bounce_build && mkdir bounce_build && cp bounce_handler.py bounce_build/ && \
       docker run --rm --platform linux/amd64 \
-        -v "$(pwd)/bounce_build":/var/task \
-        --entrypoint /bin/bash \
+        -v "$(pwd -W)/bounce_build:/var/task" \
+        --entrypoint pip \
         public.ecr.aws/sam/build-python3.12 \
-        -c "pip install psycopg2-binary==2.9.10 -t /var/task --no-cache-dir"
+        install psycopg2-binary==2.9.10 -t /var/task --no-cache-dir
     EOT
   }
 }
@@ -423,9 +429,9 @@ resource "aws_cloudwatch_dashboard" "ses" {
         width  = 12
         height = 6
         properties = {
-          title   = "Invoice Lambda — invocations / errors / throttles"
-          region  = "us-east-1"
-          view    = "timeSeries"
+          title  = "Invoice Lambda — invocations / errors / throttles"
+          region = "us-east-1"
+          view   = "timeSeries"
           metrics = [
             ["AWS/Lambda", "Invocations", "FunctionName", aws_lambda_function.invoice.function_name],
             [".", "Errors", ".", "."],
@@ -460,6 +466,21 @@ resource "aws_cloudwatch_metric_alarm" "complaint_rate" {
   period              = 900
   evaluation_periods  = 1
   threshold           = 0.001
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [aws_sns_topic.ses_events.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "dlq_depth" {
+  alarm_name          = "shopcloud-${var.environment}-orders-dlq-not-empty"
+  alarm_description   = "Invoice messages landing in DLQ after 4 retries — usually a permanent SES reject or a malformed payload. Each one is a customer who did not get their invoice email."
+  namespace           = "AWS/SQS"
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  dimensions          = { QueueName = aws_sqs_queue.dlq.name }
+  statistic           = "Maximum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 0
   comparison_operator = "GreaterThanThreshold"
   treat_missing_data  = "notBreaching"
   alarm_actions       = [aws_sns_topic.ses_events.arn]
