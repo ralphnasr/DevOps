@@ -189,20 +189,19 @@ resource "null_resource" "lambda_build" {
     requirements_hash = filesha256("${path.module}/../../../app/invoice/requirements.txt")
   }
 
+  # Runs on Linux CI via the default sh interpreter. For local Windows applies,
+  # pre-build the zip with `bash scripts/build_lambdas.sh` from Git Bash; this
+  # null_resource will then be a no-op because state will already match.
   provisioner "local-exec" {
     working_dir = "${path.module}/../../../app/invoice"
-    interpreter = ["C:/Program Files/Git/bin/bash.exe", "-c"]
-    # MSYS_NO_PATHCONV stops Git Bash from rewriting /bin/bash and /var/task
-    # into Windows paths before docker sees them.
-    command = <<-EOT
-      export MSYS_NO_PATHCONV=1
+    command     = <<-EOT
       rm -rf build && mkdir build && cp lambda_function.py build/ && \
       docker run --rm --platform linux/amd64 \
-        -v "$(pwd -W)/build:/var/task" \
-        -v "$(pwd -W)/requirements.txt:/var/task/requirements.txt" \
-        --entrypoint pip \
+        -v "$(pwd)/build":/var/task \
+        -v "$(pwd)/requirements.txt":/var/task/requirements.txt \
+        --entrypoint /bin/bash \
         public.ecr.aws/sam/build-python3.12 \
-        install -r /var/task/requirements.txt -t /var/task --no-cache-dir
+        -c "pip install -r /var/task/requirements.txt -t /var/task --no-cache-dir"
     EOT
   }
 }
@@ -261,19 +260,22 @@ resource "aws_lambda_event_source_mapping" "sqs_trigger" {
 resource "null_resource" "bounce_lambda_build" {
   triggers = {
     source_hash = filesha256("${path.module}/../../../app/invoice/bounce_handler.py")
+    # Force rebuild on every plan/apply so `data.archive_file.bounce_lambda`
+    # below always defers to apply time. Without this, CI plan tries to read
+    # bounce_build/ at plan time and fails because the dir was only created
+    # by a prior local apply on the developer's box.
+    always_run = timestamp()
   }
 
   provisioner "local-exec" {
     working_dir = "${path.module}/../../../app/invoice"
-    interpreter = ["C:/Program Files/Git/bin/bash.exe", "-c"]
     command     = <<-EOT
-      export MSYS_NO_PATHCONV=1
       rm -rf bounce_build && mkdir bounce_build && cp bounce_handler.py bounce_build/ && \
       docker run --rm --platform linux/amd64 \
-        -v "$(pwd -W)/bounce_build:/var/task" \
-        --entrypoint pip \
+        -v "$(pwd)/bounce_build":/var/task \
+        --entrypoint /bin/bash \
         public.ecr.aws/sam/build-python3.12 \
-        install psycopg2-binary==2.9.10 -t /var/task --no-cache-dir
+        -c "pip install psycopg2-binary==2.9.10 -t /var/task --no-cache-dir"
     EOT
   }
 }

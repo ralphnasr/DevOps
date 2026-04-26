@@ -104,8 +104,8 @@ variable "ses_verified_email" {
 
 variable "alarm_email" {
   type        = string
-  description = "Email subscribed to the prod alarms SNS topic. Empty string skips the subscription."
-  default     = ""
+  description = "Email subscribed to the prod alarms SNS topic. Empty string skips the subscription. Defaulted so CI does not destroy the already-confirmed subscription on every plan."
+  default     = "sarmad.farhat2017@gmail.com"
 }
 
 variable "enable_guardduty" {
