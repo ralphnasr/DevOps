@@ -110,6 +110,6 @@ variable "alarm_email" {
 
 variable "enable_guardduty" {
   type        = bool
-  description = "Provision the GuardDuty detector. Default false because the IAM identity in this account is not subscribed to GuardDuty (returns SubscriptionRequiredException). Set true once permissions are attached and re-import any existing detector."
-  default     = false
+  description = "Provision the GuardDuty detector. Enabled 2026-04-26 after granting AmazonGuardDutyFullAccess to the ShopCloud IAM user (root activation completed via console; detector imported into state)."
+  default     = true
 }
