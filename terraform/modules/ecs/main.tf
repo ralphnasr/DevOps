@@ -120,6 +120,7 @@ resource "aws_ecs_task_definition" "services" {
     {
       name  = each.key
       image = "${lookup(var.ecr_urls, each.key, var.ecr_urls["catalog"])}:latest"
+      user  = "appuser"
       portMappings = [
         {
           containerPort = each.value.container_port
@@ -171,6 +172,7 @@ resource "aws_ecs_task_definition" "standalone" {
     {
       name  = each.key
       image = "${lookup(var.ecr_urls, each.key, var.ecr_urls["catalog"])}:latest"
+      user  = "appuser"
       environment = [
         { name = "ENVIRONMENT", value = var.environment }
       ]

@@ -7,6 +7,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY shared/ shared/
 COPY services/ services/
 
+# Run as non-root (uid 1000). Required by AWS Config rule
+# ECS_TASK_DEFINITION_NONROOT_USER and a general security best practice —
+# running app code as root inside a container is unnecessary and increases
+# blast radius if the container is ever compromised.
+RUN groupadd -g 1000 appuser && \
+    useradd -u 1000 -g appuser -m -s /bin/bash appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
 # ── Catalog service ──
 FROM base AS catalog
 COPY entrypoints/catalog.py .
