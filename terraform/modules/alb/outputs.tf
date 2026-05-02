@@ -14,7 +14,7 @@ output "target_group_arns" {
   value = { for k, v in aws_lb_target_group.services : k => v.arn }
 }
 
-# CloudWatch ApplicationELB dimension format is "app/<name>/<id>" — exposed
+# CloudWatch ApplicationELB dimension format is "app/<name>/<id>" - exposed
 # as arn_suffix so monitoring can wire it directly.
 output "alb_arn_suffix" {
   value = aws_lb.main.arn_suffix

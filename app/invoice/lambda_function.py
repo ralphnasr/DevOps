@@ -1,20 +1,4 @@
-"""Invoice generator: SQS → PDF → S3 → RDS → SES.
-
-Flow per message:
-  1. Generate PDF with fpdf2.
-  2. Upload to the invoices S3 bucket.
-  3. Presign a 7-day URL and write it to orders.invoice_url.
-  4. Check the customer's email isn't suppressed (hard-bounced / complained).
-     If it is, skip the send step — the PDF + invoice_url are still persisted
-     so the customer can download from the order confirmation page.
-  5. Send the email via SES using our configuration set (so bounces /
-     complaints flow to the SNS topic → bounce-handler Lambda → auto-suppress).
-     Transient errors (Throttling, ServiceUnavailable) retry with exponential
-     backoff. Permanent SES rejects re-raise so SQS retries the message;
-     after maxReceiveCount it lands in the DLQ and the DLQ alarm pages ops.
-     Email delivery is a project requirement, so we surface failures rather
-     than silently dropping them.
-"""
+"""Invoice generator Lambda triggered by SQS messages."""
 
 import json
 import logging
@@ -37,7 +21,6 @@ S3_INVOICE_BUCKET = os.environ.get("S3_INVOICE_BUCKET", "shopcloud-invoices")
 SES_SENDER_EMAIL = os.environ.get("SES_SENDER_EMAIL", "noreply@shopcloud.example.com")
 SES_CONFIG_SET = os.environ.get("SES_CONFIG_SET")
 
-# SES errors that are worth retrying — transient capacity / throttling issues.
 _RETRYABLE_SES_ERRORS = {
     "Throttling",
     "ThrottlingException",

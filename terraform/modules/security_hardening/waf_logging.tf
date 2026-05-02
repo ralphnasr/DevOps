@@ -1,4 +1,4 @@
-# WAF logging — log every WAF decision (BLOCK / ALLOW / COUNT) to CloudWatch
+# WAF logging - log every WAF decision (BLOCK / ALLOW / COUNT) to CloudWatch
 # so we can analyze blocked requests, identify attack patterns, and tune
 # rules. Only the env that owns the WAF (prod / edge) creates this.
 
@@ -14,7 +14,7 @@ resource "aws_wafv2_web_acl_logging_configuration" "main" {
   resource_arn            = var.waf_acl_arn
 }
 
-# ── ECR scan-on-push: alert on critical findings ──
+# -- ECR scan-on-push: alert on critical findings --
 # scan-on-push is already enabled on each repo (Phase 2). This rule turns
 # scan completions with at least one CRITICAL finding into an SNS page.
 
@@ -42,10 +42,7 @@ resource "aws_cloudwatch_event_target" "ecr_critical_to_sns" {
   arn       = var.alarms_sns_topic_arn
 }
 
-# Allow EventBridge AND CloudWatch Alarms to publish to the SNS topic.
-# aws_sns_topic_policy REPLACES the default policy, so CloudWatch loses its
-# implicit access unless we add it back here. Without this, alarm actions
-# fail with "CloudWatch Alarms is not authorized to perform: SNS:Publish".
+# SNS topic policy allowing EventBridge and CloudWatch Alarms to publish.
 data "aws_iam_policy_document" "sns_eventbridge_publish" {
   count = var.create_account_singletons ? 1 : 0
 

@@ -1,8 +1,8 @@
-# ══════════════════════════════════════════════════════════════
-# ShopCloud Infrastructure — Root Module
-# ══════════════════════════════════════════════════════════════
+# ==============================================================
+# ShopCloud Infrastructure - Root Module
+# ==============================================================
 
-# ── Shared (account-level) ──
+# -- Shared (account-level) --
 
 module "ecr" {
   source        = "./modules/ecr"
@@ -18,9 +18,9 @@ module "cognito" {
   admin_logout_urls      = var.admin_logout_urls
 }
 
-# ══════════════════════════════════════════════════════════════
+# ==============================================================
 # PRODUCTION ENVIRONMENT
-# ══════════════════════════════════════════════════════════════
+# ==============================================================
 
 module "prod_vpc" {
   source                    = "./modules/vpc"
@@ -233,9 +233,9 @@ module "edge" {
   alb_dns_name = module.prod_public_alb.alb_dns_name
 }
 
-# ══════════════════════════════════════════════════════════════
+# ==============================================================
 # DEVELOPMENT ENVIRONMENT
-# ══════════════════════════════════════════════════════════════
+# ==============================================================
 
 module "dev_vpc" {
   source                    = "./modules/vpc"
@@ -375,9 +375,9 @@ module "dev_ecs" {
   }
 }
 
-# ══════════════════════════════════════════════════════════════
-# PHASE 3 — MONITORING & OBSERVABILITY
-# ══════════════════════════════════════════════════════════════
+# ==============================================================
+# PHASE 3 - MONITORING & OBSERVABILITY
+# ==============================================================
 # One monitoring module per environment. Prod also wires Lambda + SQS DLQ
 # alarms (dev has no invoice pipeline). DLQ name is derived from the queue
 # URL: split on / and take the last segment.
@@ -431,9 +431,9 @@ module "dev_monitoring" {
   nat_gateway_id = module.dev_vpc.nat_gateway_id
 }
 
-# ══════════════════════════════════════════════════════════════
-# PHASE 3 — SECURITY HARDENING
-# ══════════════════════════════════════════════════════════════
+# ==============================================================
+# PHASE 3 - SECURITY HARDENING
+# ==============================================================
 # Per-env: VPC Flow Logs + 3 NACLs. Account-wide singletons (CloudTrail,
 # GuardDuty, IAM Access Analyzer, AWS Config) live on prod only.
 

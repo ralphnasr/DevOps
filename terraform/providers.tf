@@ -13,7 +13,7 @@ terraform {
   }
 
   # Remote state in S3 with DynamoDB locking.
-  # Bucket + table must exist before `terraform init` — see terraform.tfvars.example
+  # Bucket + table must exist before `terraform init` - see terraform.tfvars.example
   # for the bootstrap commands.
   backend "s3" {
     bucket         = "shopcloud-tfstate-503q-519718528172"

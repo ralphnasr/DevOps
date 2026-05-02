@@ -87,7 +87,6 @@ async def startup():
 
 @app.get("/health")
 async def health():
-    # Liveness only — see admin.py for rationale.
     return {"status": "healthy", "service": "checkout"}
 
 

@@ -86,16 +86,11 @@ async def startup():
 
 @app.get("/health")
 async def health():
-    # Liveness: process is up and event loop responsive. Kept shallow so a
-    # transient DB blip does not flap the ALB target group and trigger a
-    # task restart loop (was the root cause of dev admin's 1426 restarts).
     return {"status": "healthy", "service": "admin"}
 
 
 @app.get("/ready")
 async def ready():
-    # Readiness: dependencies reachable. Use this for orchestration probes
-    # or manual debugging — not the ALB health check.
     try:
         async with engine.begin() as conn:
             await conn.execute(text("SELECT 1"))

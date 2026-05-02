@@ -16,7 +16,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # ── Product gallery + rating + sales counters ──
+    # -- Product gallery + rating + sales counters --
     op.add_column(
         "products", sa.Column("images", postgresql.JSONB(), server_default="[]")
     )
@@ -32,7 +32,7 @@ def upgrade() -> None:
         sa.Column("sales_count", sa.Integer(), server_default="0", nullable=False),
     )
 
-    # ── Reviews ──
+    # -- Reviews --
     op.create_table(
         "reviews",
         sa.Column("id", sa.Integer(), primary_key=True),
@@ -66,7 +66,7 @@ def upgrade() -> None:
     op.create_index("idx_reviews_product", "reviews", ["product_id"])
     op.create_index("idx_reviews_created", "reviews", ["created_at"])
 
-    # ── Promotions (hero slides, seasonal banners, flash sales) ──
+    # -- Promotions (hero slides, seasonal banners, flash sales) --
     op.create_table(
         "promotions",
         sa.Column("id", sa.Integer(), primary_key=True),
@@ -87,7 +87,7 @@ def upgrade() -> None:
     )
     op.create_index("idx_promotions_slot_active", "promotions", ["slot", "is_active"])
 
-    # ── Testimonials ──
+    # -- Testimonials --
     op.create_table(
         "testimonials",
         sa.Column("id", sa.Integer(), primary_key=True),

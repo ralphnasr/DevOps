@@ -8,7 +8,7 @@ variable "project_name" {
   default = "shopcloud"
 }
 
-# ── VPC ──
+# -- VPC --
 
 variable "prod_vpc_cidr" {
   type    = string
@@ -30,14 +30,14 @@ variable "dev_azs" {
   default = ["us-east-1a", "us-east-1b"]
 }
 
-# ── ECR ──
+# -- ECR --
 
 variable "ecr_service_names" {
   type    = list(string)
   default = ["catalog", "cart", "checkout", "admin", "migrate"]
 }
 
-# ── Cognito callback URLs ──
+# -- Cognito callback URLs --
 # Two-phase apply: first pass uses localhost only (CloudFront domain not yet
 # known). Second pass overrides via -var to include the real CloudFront URL.
 variable "customer_callback_urls" {
@@ -64,7 +64,7 @@ variable "admin_logout_urls" {
   default     = ["http://localhost:8001/admin"]
 }
 
-# ── Bastion ──
+# -- Bastion --
 
 variable "admin_cidr_blocks" {
   type        = list(string)
@@ -84,7 +84,7 @@ variable "bastion_public_key" {
   default     = ""
 }
 
-# ── Domain ──
+# -- Domain --
 
 variable "domain_name" {
   type        = string
@@ -92,7 +92,7 @@ variable "domain_name" {
   default     = ""
 }
 
-# ── SES ──
+# -- SES --
 
 variable "ses_verified_email" {
   type        = string
@@ -100,7 +100,7 @@ variable "ses_verified_email" {
   default     = "noreply@shopcloud.example.com"
 }
 
-# ── Phase 3 (monitoring) ──
+# -- Phase 3 (monitoring) --
 
 variable "alarm_email" {
   type        = string

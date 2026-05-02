@@ -16,7 +16,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # ── Categories ──
+    # -- Categories --
     op.create_table(
         "categories",
         sa.Column("id", sa.Integer(), primary_key=True),
@@ -27,7 +27,7 @@ def upgrade() -> None:
         ),
     )
 
-    # ── Products ──
+    # -- Products --
     op.create_table(
         "products",
         sa.Column("id", sa.Integer(), primary_key=True),
@@ -83,7 +83,7 @@ def upgrade() -> None:
             FOR EACH ROW EXECUTE FUNCTION update_product_search_vector();
     """)
 
-    # ── Customers ──
+    # -- Customers --
     op.create_table(
         "customers",
         sa.Column("id", sa.Integer(), primary_key=True),
@@ -96,7 +96,7 @@ def upgrade() -> None:
     )
     op.create_index("idx_customers_cognito", "customers", ["cognito_sub"])
 
-    # ── Orders ──
+    # -- Orders --
     op.create_table(
         "orders",
         sa.Column("id", sa.Integer(), primary_key=True),
@@ -121,7 +121,7 @@ def upgrade() -> None:
     op.create_index("idx_orders_customer", "orders", ["customer_id"])
     op.create_index("idx_orders_status", "orders", ["status"])
 
-    # ── Order Items ──
+    # -- Order Items --
     op.create_table(
         "order_items",
         sa.Column("id", sa.Integer(), primary_key=True),

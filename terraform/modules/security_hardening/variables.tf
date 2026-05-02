@@ -2,7 +2,7 @@ variable "environment" {
   type = string
 }
 
-# ── VPC + subnets (NACLs need both IDs and CIDRs) ──
+# -- VPC + subnets (NACLs need both IDs and CIDRs) --
 
 variable "vpc_id" {
   type = string
@@ -37,14 +37,14 @@ variable "admin_cidr_blocks" {
   default = []
 }
 
-# ── WAF (logging) — only the prod env passes this; dev passes "" ──
+# -- WAF (logging) - only the prod env passes this; dev passes "" --
 
 variable "waf_acl_arn" {
   type    = string
   default = ""
 }
 
-# ── Account-wide singletons (CloudTrail, GuardDuty, Config, IAM Analyzer) ──
+# -- Account-wide singletons (CloudTrail, GuardDuty, Config, IAM Analyzer) --
 # Set to true on exactly one environment (prod). Dev imports nothing global.
 
 variable "create_account_singletons" {
@@ -55,7 +55,7 @@ variable "create_account_singletons" {
 
 variable "alarms_sns_topic_arn" {
   type        = string
-  description = "SNS topic from monitoring module — ECR scan EventBridge rule sends critical findings here."
+  description = "SNS topic from monitoring module - ECR scan EventBridge rule sends critical findings here."
   default     = ""
 }
 

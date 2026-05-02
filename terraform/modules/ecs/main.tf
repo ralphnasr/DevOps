@@ -1,4 +1,4 @@
-# ── Cluster ──
+# -- Cluster --
 
 resource "aws_ecs_cluster" "main" {
   name = var.cluster_name
@@ -21,7 +21,7 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
   }
 }
 
-# ── IAM Roles ──
+# -- IAM Roles --
 
 data "aws_iam_policy_document" "ecs_assume" {
   statement {
@@ -85,7 +85,7 @@ resource "aws_iam_role_policy" "task_permissions" {
   })
 }
 
-# ── Log Groups ──
+# -- Log Groups --
 
 resource "aws_cloudwatch_log_group" "services" {
   for_each          = var.services
@@ -103,7 +103,7 @@ resource "aws_cloudwatch_log_group" "standalone" {
   tags = { Name = "shopcloud-${var.environment}-${each.key}" }
 }
 
-# ── Task Definitions ──
+# -- Task Definitions --
 
 resource "aws_ecs_task_definition" "services" {
   for_each = var.services
@@ -153,7 +153,7 @@ resource "aws_ecs_task_definition" "services" {
 
 data "aws_region" "current" {}
 
-# ── Standalone task definitions (no service) ──
+# -- Standalone task definitions (no service) --
 # Used for one-off jobs like DB migrations that run via `aws ecs run-task`.
 # Image comes from the matching ECR repo (so var.ecr_urls must include the key).
 
@@ -197,7 +197,7 @@ resource "aws_ecs_task_definition" "standalone" {
   tags = { Name = "shopcloud-${var.environment}-${each.key}" }
 }
 
-# ── Services ──
+# -- Services --
 
 resource "aws_ecs_service" "services" {
   for_each = var.services
@@ -225,7 +225,7 @@ resource "aws_ecs_service" "services" {
   tags = { Name = "shopcloud-${var.environment}-${each.key}" }
 }
 
-# ── Auto Scaling ──
+# -- Auto Scaling --
 
 resource "aws_appautoscaling_target" "services" {
   for_each = var.services

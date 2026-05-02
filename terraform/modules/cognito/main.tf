@@ -8,7 +8,7 @@ locals {
   domain_suffix = var.domain_prefix_suffix != "" ? var.domain_prefix_suffix : random_string.suffix.result
 }
 
-# ── Customer User Pool ──
+# -- Customer User Pool --
 
 resource "aws_cognito_user_pool" "customer" {
   name = "shopcloud-customer"
@@ -66,7 +66,7 @@ resource "aws_cognito_user_pool_domain" "customer" {
   user_pool_id = aws_cognito_user_pool.customer.id
 }
 
-# ── Admin User Pool ──
+# -- Admin User Pool --
 
 resource "aws_cognito_user_pool" "admin" {
   name = "shopcloud-admin"

@@ -1,4 +1,4 @@
-# ── Public ALB ──
+# -- Public ALB --
 
 resource "aws_security_group" "public_alb" {
   name_prefix = "shopcloud-${var.environment}-pub-alb-"
@@ -31,7 +31,7 @@ resource "aws_security_group" "public_alb" {
   lifecycle { create_before_destroy = true }
 }
 
-# ── Customer Fargate ──
+# -- Customer Fargate --
 
 resource "aws_security_group" "customer_fargate" {
   name_prefix = "shopcloud-${var.environment}-cust-fg-"
@@ -57,7 +57,7 @@ resource "aws_security_group" "customer_fargate" {
   lifecycle { create_before_destroy = true }
 }
 
-# ── Internal ALB ──
+# -- Internal ALB --
 
 resource "aws_security_group" "internal_alb" {
   name_prefix = "shopcloud-${var.environment}-int-alb-"
@@ -83,7 +83,7 @@ resource "aws_security_group" "internal_alb" {
   lifecycle { create_before_destroy = true }
 }
 
-# ── Admin Fargate ──
+# -- Admin Fargate --
 
 resource "aws_security_group" "admin_fargate" {
   name_prefix = "shopcloud-${var.environment}-admin-fg-"
@@ -91,10 +91,13 @@ resource "aws_security_group" "admin_fargate" {
   description = "Admin Fargate tasks"
 
   ingress {
-    from_port       = 8000
-    to_port         = 8000
-    protocol        = "tcp"
-    security_groups = [aws_security_group.internal_alb.id]
+    from_port = 8000
+    to_port   = 8000
+    protocol  = "tcp"
+    security_groups = [
+      aws_security_group.internal_alb.id,
+      aws_security_group.public_alb.id,
+    ]
   }
 
   egress {
@@ -109,7 +112,7 @@ resource "aws_security_group" "admin_fargate" {
   lifecycle { create_before_destroy = true }
 }
 
-# ── Bastion ──
+# -- Bastion --
 
 resource "aws_security_group" "bastion" {
   name_prefix = "shopcloud-${var.environment}-bastion-"
@@ -138,7 +141,7 @@ resource "aws_security_group" "bastion" {
   lifecycle { create_before_destroy = true }
 }
 
-# ── RDS ──
+# -- RDS --
 
 resource "aws_security_group" "rds" {
   name_prefix = "shopcloud-${var.environment}-rds-"
@@ -161,7 +164,7 @@ resource "aws_security_group" "rds" {
   lifecycle { create_before_destroy = true }
 }
 
-# ── ElastiCache ──
+# -- ElastiCache --
 
 resource "aws_security_group" "elasticache" {
   name_prefix = "shopcloud-${var.environment}-redis-"
@@ -183,7 +186,7 @@ resource "aws_security_group" "elasticache" {
   lifecycle { create_before_destroy = true }
 }
 
-# ── Lambda ──
+# -- Lambda --
 
 resource "aws_security_group" "lambda" {
   name_prefix = "shopcloud-${var.environment}-lambda-"

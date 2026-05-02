@@ -4,7 +4,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
-# ── Pagination ──
+# -- Pagination --
 
 
 class PaginatedResponse(BaseModel):
@@ -15,7 +15,7 @@ class PaginatedResponse(BaseModel):
     pages: int = 0
 
 
-# ── Category ──
+# -- Category --
 
 
 class CategoryOut(BaseModel):
@@ -26,7 +26,7 @@ class CategoryOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── Product ──
+# -- Product --
 
 
 class ProductOut(BaseModel):
@@ -54,7 +54,7 @@ class ProductList(PaginatedResponse):
     items: list[ProductOut] = []
 
 
-# ── Cart ──
+# -- Cart --
 
 
 class CartItem(BaseModel):
@@ -78,7 +78,7 @@ class UpdateCartRequest(BaseModel):
     quantity: int = Field(ge=0)
 
 
-# ── Checkout / Orders ──
+# -- Checkout / Orders --
 
 
 class CheckoutRequest(BaseModel):
@@ -144,7 +144,7 @@ class ReorderResponse(BaseModel):
     message: str = "Items added to cart"
 
 
-# ── Admin ──
+# -- Admin --
 
 
 class AdminProductCreate(BaseModel):
@@ -176,7 +176,7 @@ class AdminOrderStatusUpdate(BaseModel):
     status: str
 
 
-# ── Health ──
+# -- Health --
 
 
 class HealthResponse(BaseModel):
@@ -184,7 +184,7 @@ class HealthResponse(BaseModel):
     service: str = ""
 
 
-# ── Dashboard ──
+# -- Dashboard --
 
 
 class DashboardStats(BaseModel):
@@ -194,7 +194,7 @@ class DashboardStats(BaseModel):
     low_stock_count: int = 0
 
 
-# ── Coupons (admin) ──
+# -- Coupons (admin) --
 
 
 class AdminCouponCreate(BaseModel):
@@ -233,7 +233,7 @@ class CouponOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── Reviews ──
+# -- Reviews --
 
 
 class ReviewOut(BaseModel):
@@ -263,7 +263,7 @@ class ReviewSummary(BaseModel):
     reviews: list[ReviewOut] = []
 
 
-# ── Promotions / Testimonials ──
+# -- Promotions / Testimonials --
 
 
 class PromotionOut(BaseModel):
@@ -292,7 +292,7 @@ class TestimonialOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── Analytics ──
+# -- Analytics --
 
 
 class DailyRevenuePoint(BaseModel):

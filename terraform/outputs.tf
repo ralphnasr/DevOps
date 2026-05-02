@@ -1,9 +1,9 @@
-# ── ECR ──
+# -- ECR --
 output "ecr_repository_urls" {
   value = module.ecr.repository_urls
 }
 
-# ── Cognito ──
+# -- Cognito --
 output "cognito_customer_pool_id" {
   value = module.cognito.customer_pool_id
 }
@@ -28,7 +28,7 @@ output "cognito_admin_domain" {
   value = module.cognito.admin_domain
 }
 
-# ── Production ──
+# -- Production --
 output "prod_alb_dns" {
   value = module.prod_public_alb.alb_dns_name
 }
@@ -42,7 +42,7 @@ output "prod_rds_endpoint" {
 }
 
 output "prod_rds_dr_replica_endpoint" {
-  description = "Cross-region read replica in eu-west-1 — DR target + low-latency EU reads (Phase 1 §2.3)"
+  description = "Cross-region RDS read replica in eu-west-1 for disaster recovery"
   value       = module.prod_rds_dr_replica.replica_endpoint
 }
 
@@ -78,7 +78,7 @@ output "waf_acl_arn" {
   value = module.edge.waf_acl_arn
 }
 
-# ── Development ──
+# -- Development --
 output "dev_alb_dns" {
   value = module.dev_alb.alb_dns_name
 }
@@ -99,7 +99,7 @@ output "dev_ecs_cluster" {
   value = module.dev_ecs.ecs_cluster_name
 }
 
-# ── Phase 3: Monitoring ──
+# -- Phase 3: Monitoring --
 output "prod_dashboard_url" {
   value = module.prod_monitoring.dashboard_url
 }
@@ -117,7 +117,7 @@ output "dev_alarms_topic_arn" {
   value = module.dev_monitoring.sns_topic_arn
 }
 
-# ── Phase 3: Security ──
+# -- Phase 3: Security --
 output "prod_flow_log_group" {
   value = module.prod_security.flow_log_group_name
 }

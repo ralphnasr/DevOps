@@ -47,7 +47,7 @@ def _get_public_key(token: str, jwks: dict) -> dict:
 async def validate_customer_token(request: Request) -> CurrentUser:
     if not settings.cognito_user_pool_id:
         # Hard-fail in prod: an unset pool ID in a production deploy means
-        # the SSM → ECS env-injection chain broke. Silently bypassing auth
+        # the SSM -> ECS env-injection chain broke. Silently bypassing auth
         # would let anyone impersonate any user. Dev-bypass stays for local.
         if settings.environment == "prod":
             raise HTTPException(

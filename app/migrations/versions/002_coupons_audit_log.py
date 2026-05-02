@@ -16,7 +16,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # ── Coupons ──
+    # -- Coupons --
     op.create_table(
         "coupons",
         sa.Column("id", sa.Integer(), primary_key=True),
@@ -43,7 +43,7 @@ def upgrade() -> None:
     op.create_index("idx_coupons_code", "coupons", ["code"])
     op.create_index("idx_coupons_active", "coupons", ["is_active"])
 
-    # ── Audit Logs ──
+    # -- Audit Logs --
     op.create_table(
         "audit_logs",
         sa.Column("id", sa.Integer(), primary_key=True),
@@ -63,7 +63,7 @@ def upgrade() -> None:
     op.create_index("idx_audit_logs_entity", "audit_logs", ["entity_type", "entity_id"])
     op.create_index("idx_audit_logs_created", "audit_logs", ["created_at"])
 
-    # ── Order discount fields ──
+    # -- Order discount fields --
     op.add_column(
         "orders", sa.Column("subtotal", sa.Numeric(10, 2), server_default="0")
     )

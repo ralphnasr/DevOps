@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ── ShopCloud Deployment Script ──
+# -- ShopCloud Deployment Script --
 # Usage: ./scripts/deploy.sh <environment> [service]
 # Examples:
 #   ./scripts/deploy.sh dev          # Deploy all services to dev

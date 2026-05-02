@@ -43,31 +43,16 @@ async def _get_or_create_customer(
 
 
 def publish_invoice_message(message: dict) -> None:
-    """
-    Background-task entrypoint: pushes the invoice job onto SQS *after* the
-    /api/checkout HTTP response has already been sent. This is the seam that
-    makes invoice generation truly fire-and-forget from the client's POV —
-    the customer gets \"Order Confirmed!\" the instant the DB commit lands;
-    the SQS round-trip + Lambda + S3 + SES all happen in the background.
-
-    Runs in FastAPI's threadpool (BackgroundTasks executes sync funcs there),
-    so the blocking boto3 call doesn't pin the asyncio event loop.
-
-    Hard-fail in prod if SQS isn't configured: the order is already committed
-    to RDS, so a missing queue URL means an order with no invoice. Better a
-    loud server-side log + raise than a silent gap. Failure here cannot leak
-    back to the customer (response already sent), so RDS is the source of
-    truth and we rely on logs/CloudWatch alerts to surface drops.
-    """
+    """Publish an invoice job to SQS as a background task."""
     if settings.sqs_queue_url:
         _get_sqs().send_message(
             QueueUrl=settings.sqs_queue_url,
             MessageBody=json.dumps(message),
         )
-        logger.info(f"Published order {message['order_id']} to SQS (background)")
+        logger.info(f"Published order {message['order_id']} to SQS")
     elif settings.environment == "prod":
         logger.error(
-            f"SQS_QUEUE_URL empty in prod — order {message['order_id']} "
+            f"SQS_QUEUE_URL empty in prod, order {message['order_id']} "
             "saved but invoice pipeline cannot be notified"
         )
         raise RuntimeError("SQS_QUEUE_URL empty in prod")
@@ -170,12 +155,7 @@ async def process_checkout(
 
     await db.commit()
 
-    # 8. Build the SQS message — but DON'T publish it here. The router will
-    #    schedule publish_invoice_message() as a FastAPI BackgroundTask so it
-    #    runs *after* the HTTP response is sent. This is what makes invoice
-    #    generation asynchronous from the customer's POV: \"Order Confirmed!\"
-    #    appears the instant cart-delete returns; the SQS roundtrip + Lambda +
-    #    S3 + SES all happen out of band.
+    # Build the SQS message; publish happens in the router as a BackgroundTask.
     sqs_message = {
         "order_id": order.id,
         "customer_id": customer.id,
@@ -196,7 +176,6 @@ async def process_checkout(
         "created_at": order.created_at.isoformat() if order.created_at else "",
     }
 
-    # 9. Clear cart (sync — user must see empty cart in the very next response)
     await delete_cart(r, cognito_sub)
 
     response = {
@@ -207,10 +186,10 @@ async def process_checkout(
         "coupon_code": applied_code,
         "total_amount": float(order.total_amount),
         "message": (
-            "Order confirmed — your invoice is being generated. "
-            "Download it from your order confirmation page."
+            "Order confirmed. Your invoice is being generated; "
+            "download it from your order confirmation page."
             if email_suppressed
-            else "Order confirmed — your invoice is being generated and will arrive by email shortly."
+            else "Order confirmed. Your invoice is being generated and will arrive by email shortly."
         ),
     }
     return response, sqs_message

@@ -1,4 +1,4 @@
-# 8 saved CloudWatch Logs Insights queries — one per common ops question.
+# 8 saved CloudWatch Logs Insights queries - one per common ops question.
 # Names follow the README so docs and console agree. Queries scan the JSON
 # log fields the FastAPI services and Lambdas emit (level, msg, request_id,
 # path, status_code, duration_ms, etc.).
@@ -10,7 +10,7 @@ locals {
     "/ecs/shopcloud-${var.environment}/${k}"
   ]
 
-  # Lambda log groups — only when prod has the invoice pipeline wired.
+  # Lambda log groups - only when prod has the invoice pipeline wired.
   lambda_log_groups = var.lambda_function_name == "" ? [] : [
     "/aws/lambda/${var.lambda_function_name}",
     "/aws/lambda/shopcloud-${var.environment}-bounce-handler",

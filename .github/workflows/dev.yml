@@ -127,8 +127,7 @@ jobs:
           for service in combined admin migrate; do
             docker build -t $ECR_REGISTRY/shopcloud/$service:$IMAGE_TAG \
               -t $ECR_REGISTRY/shopcloud/$service:latest \
-              --target $service \
-              -f app/Dockerfile app/
+              -f app/dockerfiles/Dockerfile.$service app/
             docker push $ECR_REGISTRY/shopcloud/$service:$IMAGE_TAG
             docker push $ECR_REGISTRY/shopcloud/$service:latest
           done

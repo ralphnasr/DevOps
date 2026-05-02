@@ -30,13 +30,6 @@ async def checkout(
     db: AsyncSession = Depends(get_db),
     r: aioredis.Redis = Depends(get_redis),
 ):
-    """
-    Order finalization is sync (so the response carries the order_id and total),
-    but the SQS publish that triggers PDF + S3 + SES runs as a BackgroundTask —
-    FastAPI sends the HTTP response first, then executes the task in its
-    threadpool. This is what lets the customer immediately click \"Continue
-    Shopping\" or \"View My Orders\" while the invoice generates in the background.
-    """
     coupon_code = body.coupon_code if body else None
     try:
         response, sqs_message = await service.process_checkout(

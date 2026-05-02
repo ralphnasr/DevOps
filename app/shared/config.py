@@ -39,9 +39,6 @@ settings = Settings()
 
 
 def validate_prod() -> None:
-    # Called from each service's startup hook. In prod, every AWS-backed
-    # dependency must be real — no localhost, no empty SSM secrets — so a
-    # misconfigured deploy fails fast instead of silently bypassing AWS.
     if settings.environment != "prod":
         return
 
@@ -64,6 +61,5 @@ def validate_prod() -> None:
 
     if errors:
         raise RuntimeError(
-            "Production config validation failed — refusing to start.\n  - "
-            + "\n  - ".join(errors)
+            "Production config validation failed:\n  - " + "\n  - ".join(errors)
         )

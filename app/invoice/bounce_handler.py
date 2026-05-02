@@ -1,15 +1,4 @@
-"""SES bounce/complaint → customer email suppression.
-
-Subscribed to the SES events SNS topic. On a permanent (hard) bounce we mark
-the customer's email as suppressed in RDS; the checkout service checks that
-flag before publishing an invoice message, so we stop sending to addresses
-that demonstrably can't receive mail. Keeps us under AWS's 5% bounce and
-0.1% complaint enforcement thresholds.
-
-Complaints (user hit "Report spam") are treated the same way — we stop
-sending. Soft bounces (mailbox full, greylist) are ignored; SES retries
-them naturally.
-"""
+"""SES bounce and complaint handler that updates the suppression list."""
 
 import json
 import logging

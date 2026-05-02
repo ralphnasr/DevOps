@@ -1,10 +1,10 @@
 name: Rollback Production
 
 # Manual rollback to a previous ECS task definition revision.
-# Per docs/phase2-master-plan.md §9.4 (Option A: ECS task definition revert).
+# Per docs/phase2-master-plan.md section 9.4 (Option A: ECS task definition revert).
 #
 # How to use:
-#   1. Go to Actions → "Rollback Production" → Run workflow
+#   1. Go to Actions -> "Rollback Production" -> Run workflow
 #   2. Pick the service (catalog | cart | checkout | admin | all)
 #   3. Enter the revision number to roll back to (e.g. 42)
 #      Find it via: aws ecs list-task-definitions --family-prefix shopcloud-prod-<service>
@@ -110,7 +110,7 @@ jobs:
           set -euo pipefail
           alb=$(cd terraform && terraform output -raw prod_alb_dns 2>/dev/null || echo "")
           if [[ -z "$alb" ]]; then
-            echo "WARN: prod_alb_dns output unavailable in this checkout — skipping smoke test"
+            echo "WARN: prod_alb_dns output unavailable in this checkout - skipping smoke test"
             exit 0
           fi
           for svc in ${{ steps.svc.outputs.list }}; do

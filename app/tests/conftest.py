@@ -12,7 +12,7 @@ from shared.config import settings
 from shared.models import Base, Category, Product
 
 
-# ── Test database ──
+# -- Test database --
 
 
 def _derive_test_db_url(url: str) -> str:
@@ -61,7 +61,7 @@ async def db_session(test_engine):
             await conn.execute(table.delete())
 
 
-# ── Mock Redis ──
+# -- Mock Redis --
 
 
 @pytest.fixture
@@ -75,7 +75,7 @@ def mock_redis():
     return r
 
 
-# ── Mock SQS ──
+# -- Mock SQS --
 
 
 @pytest.fixture
@@ -85,7 +85,7 @@ def mock_sqs():
     return client
 
 
-# ── Auth fixtures ──
+# -- Auth fixtures --
 
 
 @pytest.fixture
@@ -98,7 +98,7 @@ def admin_user():
     return AdminUser(cognito_sub="admin-user-123", email="admin@example.com")
 
 
-# ── Test data ──
+# -- Test data --
 
 
 @pytest_asyncio.fixture
@@ -128,7 +128,7 @@ async def sample_products(db_session: AsyncSession, sample_category):
     return products
 
 
-# ── HTTP Client fixtures ──
+# -- HTTP Client fixtures --
 
 
 def _get_catalog_client(db_session, current_user):

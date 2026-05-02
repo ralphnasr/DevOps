@@ -6,7 +6,7 @@
 locals {
   region = data.aws_region.current.name
 
-  # ECS metrics — one line per service. Built dynamically from the service map
+  # ECS metrics - one line per service. Built dynamically from the service map
   # so adding a service automatically adds a line.
   ecs_running_metrics = [
     for k, v in var.ecs_services :
@@ -34,7 +34,7 @@ resource "aws_cloudwatch_dashboard" "main" {
 
   dashboard_body = jsonencode({
     widgets = [
-      # ── Row 1: Service health ──
+      # -- Row 1: Service health --
       {
         type = "metric"
         x    = 0, y = 0, width = 8, height = 6
@@ -75,7 +75,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         }
       },
 
-      # ── Row 2: Latency & errors ──
+      # -- Row 2: Latency & errors --
       {
         type = "metric"
         x    = 0, y = 6, width = 8, height = 6
@@ -122,7 +122,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         }
       },
 
-      # ── Row 3: Compute resources ──
+      # -- Row 3: Compute resources --
       {
         type = "metric"
         x    = 0, y = 12, width = 8, height = 6
@@ -164,7 +164,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         }
       },
 
-      # ── Row 4: Data layer ──
+      # -- Row 4: Data layer --
       {
         type = "metric"
         x    = 0, y = 18, width = 8, height = 6
@@ -208,7 +208,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         }
       },
 
-      # ── Row 5: Async pipeline ──
+      # -- Row 5: Async pipeline --
       {
         type = "metric"
         x    = 0, y = 24, width = 8, height = 6

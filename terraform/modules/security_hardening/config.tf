@@ -1,8 +1,8 @@
-# AWS Config — account-wide singleton (lives only in the env that owns
+# AWS Config - account-wide singleton (lives only in the env that owns
 # create_account_singletons). Continuously evaluates resource configurations
 # against AWS-managed compliance rules and flags drift.
 
-# ── S3 bucket for Config snapshots ──
+# -- S3 bucket for Config snapshots --
 
 resource "aws_s3_bucket" "config" {
   count         = var.create_account_singletons ? 1 : 0
@@ -56,7 +56,7 @@ resource "aws_s3_bucket_policy" "config" {
   })
 }
 
-# ── IAM role Config assumes ──
+# -- IAM role Config assumes --
 
 resource "aws_iam_role" "config" {
   count = var.create_account_singletons ? 1 : 0
@@ -78,7 +78,7 @@ resource "aws_iam_role_policy_attachment" "config_managed" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWS_ConfigRole"
 }
 
-# ── Recorder, delivery channel, status ──
+# -- Recorder, delivery channel, status --
 
 resource "aws_config_configuration_recorder" "main" {
   count    = var.create_account_singletons ? 1 : 0
@@ -109,7 +109,7 @@ resource "aws_config_configuration_recorder_status" "main" {
   depends_on = [aws_config_delivery_channel.main]
 }
 
-# ── 9 managed rules ──
+# -- 9 managed rules --
 
 locals {
   config_managed_rules = var.create_account_singletons ? {

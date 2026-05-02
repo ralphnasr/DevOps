@@ -133,12 +133,10 @@ jobs:
           ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # migrate is included so `aws ecs run-task` below can pull it from ECR
           for service in catalog cart checkout admin migrate; do
             docker build -t $ECR_REGISTRY/shopcloud/$service:$IMAGE_TAG \
               -t $ECR_REGISTRY/shopcloud/$service:latest \
-              --target $service \
-              -f app/Dockerfile app/
+              -f app/dockerfiles/Dockerfile.$service app/
             docker push $ECR_REGISTRY/shopcloud/$service:$IMAGE_TAG
             docker push $ECR_REGISTRY/shopcloud/$service:latest
           done
@@ -200,7 +198,6 @@ jobs:
             --no-cli-pager
 
       - name: Smoke test (post-deploy)
-        # Per docs/phase2-master-plan.md §9.3 step 17
         run: |
           set -euo pipefail
           ALB=$(cd terraform && terraform output -raw prod_alb_dns)
@@ -222,7 +219,6 @@ jobs:
 
       - name: Auto-rollback on failure
         if: failure()
-        # Per docs/phase2-master-plan.md §9.4 — auto-revert to previous task def revision
         run: |
           set -euo pipefail
           for svc in catalog cart checkout admin; do

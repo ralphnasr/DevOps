@@ -27,7 +27,6 @@ async def get_dashboard_stats(db: AsyncSession) -> dict:
         )
     ).scalar()
 
-    # "Active" = listed AND in stock — out-of-stock items can't be sold
     total_products = (
         await db.execute(
             select(func.count(Product.id)).where(
@@ -216,7 +215,7 @@ async def list_categories(db: AsyncSession) -> list:
     return result.scalars().all()
 
 
-# ── Audit Log ──
+# -- Audit Log --
 
 
 async def log_audit(
@@ -276,7 +275,7 @@ async def list_audit_logs(
     }
 
 
-# ── Coupons ──
+# -- Coupons --
 
 
 async def list_coupons(db: AsyncSession, page: int = 1, per_page: int = 50) -> dict:
@@ -333,7 +332,7 @@ async def delete_coupon(db: AsyncSession, coupon_id: int) -> bool:
     return True
 
 
-# ── Analytics ──
+# -- Analytics --
 
 
 async def get_analytics(db: AsyncSession, days: int = 30) -> dict:

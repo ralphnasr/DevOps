@@ -93,12 +93,11 @@ async def startup():
         await r.aclose()
         logger.info("Redis connected")
     except Exception:
-        logger.warning("Redis not available — cart features will fail")
+        logger.warning("Redis not available, cart features will fail")
 
 
 @app.get("/health")
 async def health():
-    # Liveness only — see admin.py for rationale.
     return {"status": "healthy", "service": "combined"}
 
 

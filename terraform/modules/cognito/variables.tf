@@ -4,7 +4,7 @@ variable "domain_prefix_suffix" {
 }
 
 variable "customer_callback_urls" {
-  description = "OAuth callback URLs for customer app client — must be set from root to include the real CloudFront domain"
+  description = "OAuth callback URLs for customer app client - must be set from root to include the real CloudFront domain"
   type        = list(string)
 }
 

@@ -9,7 +9,7 @@ variable "alarm_email" {
   default     = ""
 }
 
-# ── ECS ──
+# -- ECS --
 
 variable "ecs_cluster_name" {
   type = string
@@ -17,10 +17,10 @@ variable "ecs_cluster_name" {
 
 variable "ecs_services" {
   type        = map(string)
-  description = "Map of logical name → ECS service name. Each gets CPU + memory + running-task alarms."
+  description = "Map of logical name -> ECS service name. Each gets CPU + memory + running-task alarms."
 }
 
-# ── ALB ──
+# -- ALB --
 
 variable "alb_arn_suffix" {
   type        = string
@@ -29,11 +29,11 @@ variable "alb_arn_suffix" {
 
 variable "alb_target_group_arn_suffixes" {
   type        = map(string)
-  description = "Map of logical name → target group dimension suffix (targetgroup/name/id) for unhealthy-host alarms."
+  description = "Map of logical name -> target group dimension suffix (targetgroup/name/id) for unhealthy-host alarms."
   default     = {}
 }
 
-# ── RDS ──
+# -- RDS --
 
 variable "rds_instance_id" {
   type = string
@@ -45,13 +45,13 @@ variable "rds_has_replica" {
   default     = false
 }
 
-# ── ElastiCache ──
+# -- ElastiCache --
 
 variable "elasticache_cluster_id" {
   type = string
 }
 
-# ── Lambda + SQS (prod only) ──
+# -- Lambda + SQS (prod only) --
 
 variable "lambda_function_name" {
   type        = string
@@ -65,7 +65,7 @@ variable "sqs_dlq_name" {
   default     = ""
 }
 
-# ── NAT ──
+# -- NAT --
 
 variable "nat_gateway_id" {
   type        = string

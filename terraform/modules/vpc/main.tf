@@ -6,14 +6,14 @@ resource "aws_vpc" "main" {
   tags = { Name = "shopcloud-${var.environment}-vpc" }
 }
 
-# ── Internet Gateway ──
+# -- Internet Gateway --
 
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
   tags   = { Name = "shopcloud-${var.environment}-igw" }
 }
 
-# ── Public Subnets ──
+# -- Public Subnets --
 
 resource "aws_subnet" "public" {
   count                   = length(var.public_subnet_cidrs)
@@ -25,7 +25,7 @@ resource "aws_subnet" "public" {
   tags = { Name = "shopcloud-${var.environment}-public-${var.azs[count.index]}" }
 }
 
-# ── Private App Subnets ──
+# -- Private App Subnets --
 
 resource "aws_subnet" "private_app" {
   count             = length(var.private_app_subnet_cidrs)
@@ -36,7 +36,7 @@ resource "aws_subnet" "private_app" {
   tags = { Name = "shopcloud-${var.environment}-app-${var.azs[count.index]}" }
 }
 
-# ── Private Data Subnets ──
+# -- Private Data Subnets --
 
 resource "aws_subnet" "private_data" {
   count             = length(var.private_data_subnet_cidrs)
@@ -47,7 +47,7 @@ resource "aws_subnet" "private_data" {
   tags = { Name = "shopcloud-${var.environment}-data-${var.azs[count.index]}" }
 }
 
-# ── NAT Gateway ──
+# -- NAT Gateway --
 
 resource "aws_eip" "nat" {
   count  = var.enable_nat_gateway ? 1 : 0
@@ -65,7 +65,7 @@ resource "aws_nat_gateway" "main" {
   depends_on = [aws_internet_gateway.main]
 }
 
-# ── Route Tables ──
+# -- Route Tables --
 
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
@@ -106,4 +106,10 @@ resource "aws_route_table_association" "private_data" {
   count          = length(aws_subnet.private_data)
   subnet_id      = aws_subnet.private_data[count.index].id
   route_table_id = aws_route_table.private.id
+}
+
+# Lock the default security group: no ingress, no egress.
+resource "aws_default_security_group" "default" {
+  vpc_id = aws_vpc.main.id
+  tags   = { Name = "shopcloud-${var.environment}-default-locked" }
 }

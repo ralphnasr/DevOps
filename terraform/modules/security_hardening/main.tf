@@ -1,14 +1,7 @@
-# Per-environment resources: VPC Flow Logs (one per VPC).
-# Account-wide resources (CloudTrail, GuardDuty, IAM Access Analyzer) live
-# below behind `create_account_singletons` — only prod creates them.
-
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-# ── VPC Flow Logs ──
-# All traffic in this VPC streams to CloudWatch Logs. Enables both security
-# audits (rejected-connection analysis) and troubleshooting (who can't reach
-# whom). Retention is intentionally short — Flow Logs get expensive.
+# VPC Flow Logs
 
 resource "aws_cloudwatch_log_group" "flow_logs" {
   name              = "/vpc/shopcloud-${var.environment}/flow-logs"
@@ -57,9 +50,7 @@ resource "aws_flow_log" "main" {
   tags = { Name = "shopcloud-${var.environment}-vpc-flow-logs" }
 }
 
-# ── Account singletons (CloudTrail + S3 bucket) ──
-# Force-destroy on the bucket because grading wants clean teardown. In a real
-# deployment you'd disable force_destroy and use Object Lock for compliance.
+# CloudTrail S3 bucket
 
 resource "aws_s3_bucket" "cloudtrail" {
   count         = var.create_account_singletons ? 1 : 0
@@ -106,13 +97,51 @@ resource "aws_s3_bucket_policy" "cloudtrail" {
   })
 }
 
+resource "aws_cloudwatch_log_group" "cloudtrail" {
+  count             = var.create_account_singletons ? 1 : 0
+  name              = "/aws/cloudtrail/shopcloud-audit-trail"
+  retention_in_days = 30
+}
+
+resource "aws_iam_role" "cloudtrail_to_cw" {
+  count = var.create_account_singletons ? 1 : 0
+  name  = "shopcloud-cloudtrail-to-cw-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Action    = "sts:AssumeRole"
+      Principal = { Service = "cloudtrail.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "cloudtrail_to_cw" {
+  count = var.create_account_singletons ? 1 : 0
+  role  = aws_iam_role.cloudtrail_to_cw[0].id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
+      Resource = "${aws_cloudwatch_log_group.cloudtrail[0].arn}:*"
+    }]
+  })
+}
+
 resource "aws_cloudtrail" "main" {
   count                         = var.create_account_singletons ? 1 : 0
   name                          = "shopcloud-audit-trail"
   s3_bucket_name                = aws_s3_bucket.cloudtrail[0].id
   include_global_service_events = true
-  is_multi_region_trail         = false
+  is_multi_region_trail         = true
+  enable_log_file_validation    = true
   enable_logging                = true
+
+  cloud_watch_logs_group_arn = "${aws_cloudwatch_log_group.cloudtrail[0].arn}:*"
+  cloud_watch_logs_role_arn  = aws_iam_role.cloudtrail_to_cw[0].arn
 
   event_selector {
     read_write_type           = "All"
@@ -122,7 +151,7 @@ resource "aws_cloudtrail" "main" {
   depends_on = [aws_s3_bucket_policy.cloudtrail]
 }
 
-# ── GuardDuty ──
+# -- GuardDuty --
 
 resource "aws_guardduty_detector" "main" {
   count  = var.create_account_singletons && var.enable_guardduty ? 1 : 0
@@ -135,8 +164,8 @@ resource "aws_guardduty_detector" "main" {
   tags = { Name = "shopcloud-guardduty" }
 }
 
-# ── IAM Access Analyzer ──
-# Surfaces resources shared with external entities — overly permissive
+# -- IAM Access Analyzer --
+# Surfaces resources shared with external entities - overly permissive
 # bucket policies, cross-account IAM grants, etc.
 
 resource "aws_accessanalyzer_analyzer" "main" {

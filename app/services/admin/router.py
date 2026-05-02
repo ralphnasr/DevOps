@@ -25,7 +25,7 @@ templates = Jinja2Templates(
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
-# ── Dashboard ──
+# -- Dashboard --
 
 
 @router.get("", response_class=HTMLResponse)
@@ -45,7 +45,7 @@ async def dashboard(
     )
 
 
-# ── Products ──
+# -- Products --
 
 
 @router.get("/products", response_class=HTMLResponse)
@@ -189,7 +189,7 @@ async def delete_product(
     return RedirectResponse(url="/admin/products", status_code=303)
 
 
-# ── Inventory ──
+# -- Inventory --
 
 
 @router.get("/inventory", response_class=HTMLResponse)
@@ -233,7 +233,7 @@ async def update_inventory(
     return RedirectResponse(url="/admin/inventory", status_code=303)
 
 
-# ── Orders ──
+# -- Orders --
 
 
 @router.get("/orders", response_class=HTMLResponse)
@@ -282,7 +282,7 @@ async def update_order_status(
     return RedirectResponse(url="/admin/orders", status_code=303)
 
 
-# ── Coupons ──
+# -- Coupons --
 
 
 @router.get("/coupons", response_class=HTMLResponse)
@@ -360,7 +360,7 @@ async def toggle_coupon(
     return RedirectResponse(url="/admin/coupons", status_code=303)
 
 
-# ── Audit Log ──
+# -- Audit Log --
 
 
 @router.get("/audit", response_class=HTMLResponse)
@@ -387,7 +387,7 @@ async def audit_log(
     )
 
 
-# ── Analytics ──
+# -- Analytics --
 
 
 @router.get("/analytics", response_class=HTMLResponse)

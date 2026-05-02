@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Scale prod ECS services to 0 + stop prod RDS to cut compute spend between demos.
-# Safe to run repeatedly — idempotent (skips if already paused).
+# Safe to run repeatedly - idempotent (skips if already paused).
 # AWS auto-restarts a stopped RDS after 7 days, so resume within a week.
 set -euo pipefail
 
@@ -29,7 +29,7 @@ rds_status=$(echo "$rds_info" | awk '{print $1}')
 rds_replica=$(echo "$rds_info" | awk '{print $2}')
 
 if [ -n "$rds_replica" ] && [ "$rds_replica" != "None" ]; then
-  echo "  RDS $RDS_ID has a read-replica ($rds_replica) — skipping stop"
+  echo "  RDS $RDS_ID has a read-replica ($rds_replica) - skipping stop"
   echo "    (AWS blocks stopping a replica source; keeping DR intact is worth ~\$15/mo)"
 else
   case "$rds_status" in
@@ -41,7 +41,7 @@ else
       echo "  RDS already $rds_status ✓"
       ;;
     *)
-      echo "  RDS in transient state ($rds_status) — skipping; re-run pause-prod.sh in 1 min"
+      echo "  RDS in transient state ($rds_status) - skipping; re-run pause-prod.sh in 1 min"
       ;;
   esac
 fi

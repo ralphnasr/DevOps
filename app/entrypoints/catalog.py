@@ -13,7 +13,7 @@ from shared.database import engine
 from services.catalog.router import router, storefront_router
 
 
-# ── Logging ──
+# -- Logging --
 class JsonFormatter(logging.Formatter):
     def format(self, record):
         return json.dumps(
@@ -37,7 +37,7 @@ logging.root.handlers = [handler]
 logging.root.setLevel(logging.INFO)
 logger = logging.getLogger("catalog")
 
-# ── App ──
+# -- App --
 app = FastAPI(title="ShopCloud Catalog Service", version="1.0.0")
 
 app.add_middleware(
@@ -86,7 +86,6 @@ async def startup():
 
 @app.get("/health")
 async def health():
-    # Liveness only — see admin.py for rationale.
     return {"status": "healthy", "service": "catalog"}
 
 

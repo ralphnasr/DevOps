@@ -11,7 +11,7 @@ from shared.redis_client import get_redis_client
 from services.cart.router import router
 
 
-# ── Logging ──
+# -- Logging --
 class JsonFormatter(logging.Formatter):
     def format(self, record):
         return json.dumps(
@@ -35,7 +35,7 @@ logging.root.handlers = [handler]
 logging.root.setLevel(logging.INFO)
 logger = logging.getLogger("cart")
 
-# ── App ──
+# -- App --
 app = FastAPI(title="ShopCloud Cart Service", version="1.0.0")
 
 app.add_middleware(
@@ -74,7 +74,6 @@ async def request_logging(request: Request, call_next):
 
 @app.get("/health")
 async def health():
-    # Liveness only — see admin.py for rationale.
     return {"status": "healthy", "service": "cart"}
 
 

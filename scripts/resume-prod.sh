@@ -22,7 +22,7 @@ case "$rds_status" in
     echo "  RDS already available ✓"
     ;;
   starting|configuring*|backing-up|modifying)
-    echo "  RDS already $rds_status — will wait"
+    echo "  RDS already $rds_status - will wait"
     ;;
   *)
     echo "  ERROR: RDS in unexpected state: $rds_status"
@@ -55,7 +55,7 @@ http_code=$(curl -s -o /dev/null -w "%{http_code}" "$CF_URL/api/products?limit=1
 if [ "$http_code" = "200" ]; then
   echo "  API responding 200 ✓"
 else
-  echo "  WARNING: API returned $http_code — check CloudWatch logs"
+  echo "  WARNING: API returned $http_code - check CloudWatch logs"
 fi
 
 echo ""

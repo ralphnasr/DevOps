@@ -1,4 +1,4 @@
-# ── SQS Queues ──
+# -- SQS Queues --
 
 resource "aws_sqs_queue" "dlq" {
   name                      = "shopcloud-${var.environment}-orders-dlq"
@@ -20,7 +20,7 @@ resource "aws_sqs_queue" "orders" {
   tags = { Name = "shopcloud-${var.environment}-orders" }
 }
 
-# ── S3 Bucket ──
+# -- S3 Bucket --
 
 resource "aws_s3_bucket" "invoices" {
   bucket        = "shopcloud-${var.environment}-invoices-${data.aws_caller_identity.current.account_id}"
@@ -50,13 +50,13 @@ resource "aws_s3_bucket_lifecycle_configuration" "invoices" {
   }
 }
 
-# ── SES ──
+# -- SES --
 
 resource "aws_ses_email_identity" "sender" {
   email = var.ses_verified_email
 }
 
-# Configuration set — named bundle of sending policies.
+# Configuration set - named bundle of sending policies.
 # Wires every SendEmail call that references this set into the SNS event stream
 # below, so bounces/complaints reach the auto-suppression Lambda.
 resource "aws_ses_configuration_set" "main" {
@@ -111,7 +111,7 @@ resource "aws_sns_topic_policy" "ses_events" {
   policy = data.aws_iam_policy_document.sns_ses_publish.json
 }
 
-# ── Invoice Lambda IAM Role ──
+# -- Invoice Lambda IAM Role --
 
 data "aws_iam_policy_document" "lambda_assume" {
   statement {
@@ -176,9 +176,9 @@ resource "aws_iam_role_policy" "lambda" {
   })
 }
 
-# ── Invoice Lambda ──
+# -- Invoice Lambda --
 #
-# Native deps (psycopg2-binary, fpdf2 → Pillow) ship as Linux x86_64 wheels,
+# Native deps (psycopg2-binary, fpdf2 -> Pillow) ship as Linux x86_64 wheels,
 # so we install them inside a Lambda-compatible Docker image into app/invoice/build/
 # and zip THAT directory. Zipping app/invoice/ directly (without the install step)
 # yields a 7 KB bundle that crashes at cold start with `No module named psycopg2`.
@@ -228,10 +228,10 @@ resource "aws_lambda_event_source_mapping" "sqs_trigger" {
   batch_size       = 1
 }
 
-# ══════════════════════════════════════════════════════════════════════
+# ======================================================================
 # Bounce/Complaint Auto-Suppression Lambda
-# ══════════════════════════════════════════════════════════════════════
-# SES → SNS → this Lambda. On hard bounce we mark the customer's email as
+# ======================================================================
+# SES -> SNS -> this Lambda. On hard bounce we mark the customer's email as
 # suppressed in RDS so checkout stops publishing invoice messages for them.
 # Keeps us below AWS's 5% bounce / 0.1% complaint enforcement thresholds.
 
@@ -316,12 +316,12 @@ resource "aws_lambda_permission" "bounce_sns" {
   source_arn    = aws_sns_topic.ses_events.arn
 }
 
-# ══════════════════════════════════════════════════════════════════════
+# ======================================================================
 # CloudWatch Dashboard + Alarms (sender reputation)
-# ══════════════════════════════════════════════════════════════════════
+# ======================================================================
 # Alarms fire at the exact thresholds AWS uses to place accounts under review:
-#   - 5% bounce rate    → enforcement warning
-#   - 0.1% complaint rate → enforcement warning
+#   - 5% bounce rate    -> enforcement warning
+#   - 0.1% complaint rate -> enforcement warning
 # Owning these alarms ourselves means we react before AWS does.
 
 resource "aws_cloudwatch_dashboard" "ses" {
@@ -356,7 +356,7 @@ resource "aws_cloudwatch_dashboard" "ses" {
         width  = 12
         height = 6
         properties = {
-          title   = "Reputation — Bounce Rate (alarm at 5%)"
+          title   = "Reputation - Bounce Rate (alarm at 5%)"
           region  = "us-east-1"
           view    = "timeSeries"
           metrics = [["AWS/SES", "Reputation.BounceRate"]]
@@ -370,7 +370,7 @@ resource "aws_cloudwatch_dashboard" "ses" {
         width  = 12
         height = 6
         properties = {
-          title   = "Reputation — Complaint Rate (alarm at 0.1%)"
+          title   = "Reputation - Complaint Rate (alarm at 0.1%)"
           region  = "us-east-1"
           view    = "timeSeries"
           metrics = [["AWS/SES", "Reputation.ComplaintRate"]]
@@ -384,7 +384,7 @@ resource "aws_cloudwatch_dashboard" "ses" {
         width  = 12
         height = 6
         properties = {
-          title  = "Invoice Lambda — invocations / errors / throttles"
+          title  = "Invoice Lambda - invocations / errors / throttles"
           region = "us-east-1"
           view   = "timeSeries"
           metrics = [
@@ -428,7 +428,7 @@ resource "aws_cloudwatch_metric_alarm" "complaint_rate" {
 
 resource "aws_cloudwatch_metric_alarm" "dlq_depth" {
   alarm_name          = "shopcloud-${var.environment}-orders-dlq-not-empty"
-  alarm_description   = "Invoice messages landing in DLQ after 4 retries — usually a permanent SES reject or a malformed payload. Each one is a customer who did not get their invoice email."
+  alarm_description   = "Invoice messages landing in DLQ after 4 retries - usually a permanent SES reject or a malformed payload. Each one is a customer who did not get their invoice email."
   namespace           = "AWS/SQS"
   metric_name         = "ApproximateNumberOfMessagesVisible"
   dimensions          = { QueueName = aws_sqs_queue.dlq.name }
@@ -441,6 +441,6 @@ resource "aws_cloudwatch_metric_alarm" "dlq_depth" {
   alarm_actions       = [aws_sns_topic.ses_events.arn]
 }
 
-# ── Data Sources ──
+# -- Data Sources --
 
 data "aws_caller_identity" "current" {}

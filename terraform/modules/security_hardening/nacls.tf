@@ -1,9 +1,9 @@
-# Three NACL tiers — stateless allow-lists that complement (not replace) the
+# Three NACL tiers - stateless allow-lists that complement (not replace) the
 # stateful security groups. SGs already enforce identity-based rules; NACLs
 # add a second layer at the subnet boundary so a misconfigured SG doesn't
 # silently expose a tier.
 
-# ── Public subnets: HTTP/HTTPS in, SSH from admin CIDRs only ──
+# -- Public subnets: HTTP/HTTPS in, SSH from admin CIDRs only --
 
 resource "aws_network_acl" "public" {
   vpc_id     = var.vpc_id
@@ -27,7 +27,7 @@ resource "aws_network_acl" "public" {
     to_port    = 443
   }
 
-  # Bastion SSH — only from whitelisted admin IPs
+  # Bastion SSH - only from whitelisted admin IPs
   dynamic "ingress" {
     for_each = { for idx, cidr in var.admin_cidr_blocks : idx => cidr }
     content {
@@ -40,7 +40,7 @@ resource "aws_network_acl" "public" {
     }
   }
 
-  # Ephemeral return ports (responses to outbound connections — NACLs are stateless)
+  # Ephemeral return ports (responses to outbound connections - NACLs are stateless)
   ingress {
     rule_no    = 200
     protocol   = "tcp"
@@ -50,7 +50,7 @@ resource "aws_network_acl" "public" {
     to_port    = 65535
   }
 
-  # All outbound (ALB → Fargate, bastion → SSM, etc.)
+  # All outbound (ALB -> Fargate, bastion -> SSM, etc.)
   egress {
     rule_no    = 100
     protocol   = "-1"
@@ -63,15 +63,15 @@ resource "aws_network_acl" "public" {
   tags = { Name = "shopcloud-${var.environment}-public-nacl" }
 }
 
-# ── Private app subnets: Fargate tier ──
-# In: traffic from public (ALB → 8000), data tier responses, NAT return.
+# -- Private app subnets: Fargate tier --
+# In: traffic from public (ALB -> 8000), data tier responses, NAT return.
 # Out: to data tier on 5432/6379, internet on 443 (ECR pulls, AWS APIs, SES, SQS).
 
 resource "aws_network_acl" "private_app" {
   vpc_id     = var.vpc_id
   subnet_ids = var.private_app_subnet_ids
 
-  # ALB → Fargate on container port 8000
+  # ALB -> Fargate on container port 8000
   dynamic "ingress" {
     for_each = { for idx, cidr in var.public_subnet_cidrs : idx => cidr }
     content {
@@ -159,8 +159,8 @@ resource "aws_network_acl" "private_app" {
   tags = { Name = "shopcloud-${var.environment}-private-app-nacl" }
 }
 
-# ── Private data subnets: RDS + Redis ──
-# Strictest tier — only the app subnets can reach DB ports. No internet path
+# -- Private data subnets: RDS + Redis --
+# Strictest tier - only the app subnets can reach DB ports. No internet path
 # (also enforced by absence of NAT route in the data route table). NACLs make
 # the intent explicit so a route table mistake doesn't open the tier.
 

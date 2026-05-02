@@ -1,4 +1,4 @@
-# ── S3 Static Assets ──
+# -- S3 Static Assets --
 
 resource "aws_s3_bucket" "static" {
   bucket_prefix = "shopcloud-static-"
@@ -38,7 +38,7 @@ resource "aws_s3_bucket_policy" "static" {
   })
 }
 
-# ── CloudFront OAC ──
+# -- CloudFront OAC --
 
 resource "aws_cloudfront_origin_access_control" "s3" {
   name                              = "shopcloud-s3-oac"
@@ -47,7 +47,7 @@ resource "aws_cloudfront_origin_access_control" "s3" {
   signing_protocol                  = "sigv4"
 }
 
-# ── WAF ──
+# -- WAF --
 
 resource "aws_wafv2_web_acl" "main" {
   name        = "shopcloud-waf"
@@ -133,7 +133,7 @@ resource "aws_wafv2_web_acl" "main" {
   tags = { Name = "shopcloud-waf" }
 }
 
-# ── CloudFront Distribution ──
+# -- CloudFront Distribution --
 
 resource "aws_cloudfront_distribution" "main" {
   enabled             = true
@@ -209,7 +209,7 @@ resource "aws_cloudfront_distribution" "main" {
   tags = { Name = "shopcloud-cdn" }
 }
 
-# ── Route 53 (conditional) ──
+# -- Route 53 (conditional) --
 
 resource "aws_route53_zone" "main" {
   count = var.domain_name != "" ? 1 : 0

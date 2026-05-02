@@ -61,7 +61,7 @@ resource "aws_lb_listener" "https" {
   }
 }
 
-# ── Target Groups ──
+# -- Target Groups --
 
 resource "aws_lb_target_group" "services" {
   for_each = var.services
@@ -85,7 +85,7 @@ resource "aws_lb_target_group" "services" {
   tags = { Name = "sc-${var.environment}-${each.key}-tg" }
 }
 
-# ── Listener Rules ──
+# -- Listener Rules --
 
 resource "aws_lb_listener_rule" "services" {
   for_each = var.services

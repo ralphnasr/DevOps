@@ -1,8 +1,5 @@
-# Cross-region RDS read replica for DR + low-latency EU reads.
-# Per Phase 1 report §2.3 and §5.3: eu-west-1 (Ireland) replica of us-east-1 primary.
-#
-# Provider must be passed in from root as `providers = { aws = aws.eu_west_1 }`.
-# Source DB must be in the `available` state (not stopped) before `terraform apply`.
+# Cross-region RDS read replica in eu-west-1 for disaster recovery.
+# Provider must be passed from root as: providers = { aws = aws.eu_west_1 }
 
 terraform {
   required_providers {

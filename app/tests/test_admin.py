@@ -63,7 +63,7 @@ async def test_update_order_status_invalid(db_session: AsyncSession):
         await service.update_order_status(db_session, 1, "invalid_status")
 
 
-# ── Batch E: admin compliance fixes ──
+# -- Batch E: admin compliance fixes --
 
 
 @pytest.mark.asyncio

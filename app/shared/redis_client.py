@@ -19,7 +19,7 @@ async def get_redis():
         await client.aclose()
 
 
-# ── Cart helpers ──
+# -- Cart helpers --
 
 CART_TTL = 86400  # 24 hours
 

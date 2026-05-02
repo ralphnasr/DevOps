@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ── ShopCloud Frontend Deployment ──
+# -- ShopCloud Frontend Deployment --
 # Uploads static frontend to S3 and invalidates CloudFront cache
 # Usage: ./scripts/deploy-frontend.sh
 

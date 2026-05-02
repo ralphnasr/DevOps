@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════════════════
-# ShopCloud — Terraform inputs template
+# ShopCloud - Terraform inputs template
 # Copy to terraform.tfvars and fill in the values for your account.
 # terraform.tfvars is gitignored; this .example file is committed.
 #
@@ -21,7 +21,7 @@ admin_cidr_blocks  = ["YOUR.PUBLIC.IP.HERE/32"]
 bastion_key_name   = "shopcloud-bastion"
 bastion_public_key = "ssh-ed25519 AAAA...REPLACE_WITH_CONTENTS_OF_~/.ssh/id_ed25519.pub you@host"
 
-# SES sender — must be an address you can verify (click the link AWS emails
+# SES sender - must be an address you can verify (click the link AWS emails
 # you after the first `terraform apply`).
 ses_verified_email = "you@example.com"
 
@@ -30,7 +30,7 @@ domain_name = ""
 
 # Cognito callback URLs.
 # First `terraform apply` uses localhost (CloudFront domain is not yet known).
-# Second pass, override via -var to include the real CloudFront URL — see deploy.sh.
+# Second pass, override via -var to include the real CloudFront URL - see deploy.sh.
 customer_callback_urls = ["http://localhost:3000/callback.html"]
 customer_logout_urls   = ["http://localhost:3000/index.html"]
 admin_callback_urls    = ["http://localhost:8001/admin"]

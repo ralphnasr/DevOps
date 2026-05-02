@@ -49,9 +49,6 @@ async def test_checkout_success(db_session, sample_products):
     ]
     r = _make_mock_redis_with_cart(cart_items)
 
-    # process_checkout no longer publishes to SQS itself — it returns the
-    # message for the router to schedule as a BackgroundTask. So no mock_sqs
-    # patching is needed here. Just unpack the (response, sqs_message) tuple.
     response, sqs_message = await service.process_checkout(
         db_session, r, "user-1", "test@test.com"
     )
